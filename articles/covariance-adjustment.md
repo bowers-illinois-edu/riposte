@@ -1,0 +1,193 @@
+# Covariance adjustment that stays exact
+
+## The temptation, and the trap
+
+You measured covariates that predict the outcome. It is tempting to use
+them: fit a model, subtract its prediction, and test the residuals,
+which vary less than the raw outcome, so the test should have more
+power. The temptation is real and the gain can be large. The trap is
+that the obvious way of doing it can quietly invalidate the test.
+
+The obvious way is to fit the model once on the observed data, form the
+residuals, and then permute treatment among those fixed residuals. When
+the model overfits, the fitted values chase the observed treatment
+assignment, the residuals carry a trace of it, and the permutation
+reference no longer matches the test statistic. The test rejects too
+often under the null — you buy power by spending your error rate without
+meaning to.
+
+riposte avoids this. It adjusts for covariates in a way that keeps the
+test *exactly* valid under the sharp null, for any predictive model you
+care to use — ridge regression, a random forest, anything measurable —
+and at any number of re-randomizations.
+
+## How riposte adjusts
+
+Two rules make the difference:
+
+1.  **Fit on the controls only.** The model never sees the treated
+    outcomes, so it cannot absorb the treatment effect into its
+    predictions.
+2.  **Refit inside every re-randomization.** Each time treatment is
+    re-randomized, the model is fit afresh on that re-randomization’s
+    control units, and the residuals are recomputed.
+
+The second rule is the one that matters for validity. Under the sharp
+null the outcomes are fixed, so refitting makes the entire procedure —
+model fit, residualization, combination — a deterministic function of
+the assignment. A deterministic function of the assignment has an exact
+randomization distribution. This is the design-based guarantee in the
+spirit of Rosenbaum: the test statistic is the whole algorithm, the
+refit included, so its permutation distribution is exact regardless of
+how the model behaves. (The argument and its scope are in the package’s
+development note; the method is from Bowers, Fredrickson, Hansen, and
+Yin, “Regression Without Regrets.”)
+
+You pass the covariates with `adjust`; the learner defaults to ridge.
+
+``` r
+
+library(riposte)
+
+# a block-randomized experiment with predictive covariates and a small effect
+B <- 10L; nb <- 12L
+block <- factor(rep(seq_len(B), each = nb)); N <- B * nb
+z <- integer(N)
+for (b in levels(block)) { ix <- which(block == b); z[ix][sample.int(nb, nb %/% 2L)] <- 1L }
+X <- matrix(rnorm(N * 3), N, 3)
+y <- as.numeric(X %*% c(2, -1.5, 1)) + rnorm(N, sd = 0.8) + 0.5 * z  # covariates predict y
+dat <- data.frame(Y = y, trt = z, blk = block, x1 = X[, 1], x2 = X[, 2], x3 = X[, 3])
+
+unadjusted <- riposte_test(Y ~ trt | blk, dat, statistic = "max",
+                           representations = list(raw = function(y) y),
+                           nresample = 999, seed = 1)
+adjusted <- riposte_test(Y ~ trt | blk, dat, statistic = "max",
+                         representations = list(raw = function(y) y),
+                         adjust = ~ x1 + x2 + x3, nresample = 999, seed = 1)
+c(unadjusted = unadjusted$p.value, adjusted = adjusted$p.value)
+#> unadjusted   adjusted 
+#>      0.814      0.002
+```
+
+When the covariates predict the outcome, the adjusted p-value is the
+smaller one: removing the covariates’ variance sharpens the comparison.
+When they do not predict, adjustment costs almost nothing, and either
+way the p-value stays valid.
+
+## The fit-once trap, made visible
+
+To see why the refit matters, compare it to the fit-once shortcut
+(`adjust_refit = FALSE`) under the sharp null, with a deliberately
+overfit learner (ordinary least squares with 20 covariates fit on 30
+controls). We simulate the rejection rate when there is *no effect*: a
+valid test rejects about 5% of the time. The simulation is small (40
+replications) so the vignette builds quickly; the contrast is stark
+enough to be unmistakable anyway.
+
+``` r
+
+size <- function(refit, nsims = 40, nres = 49, d = 20) {
+  Bs <- 6L; nbs <- 10L; Ns <- Bs * nbs
+  blk <- factor(rep(seq_len(Bs), each = nbs))
+  fml <- stats::as.formula(paste0("~", paste0("x", seq_len(d), collapse = "+")))
+  p <- numeric(nsims)
+  for (i in seq_len(nsims)) {
+    Xs <- matrix(rnorm(Ns * d), Ns, d)
+    ys <- rnorm(Ns)                                   # sharp null: no effect, X unrelated
+    zs <- integer(Ns)
+    for (b in levels(blk)) { ix <- which(blk == b); zs[ix][sample.int(nbs, nbs %/% 2L)] <- 1L }
+    d0 <- data.frame(Y = ys, trt = zs, blk = blk, Xs); names(d0)[-(1:3)] <- paste0("x", seq_len(d))
+    p[i] <- riposte_test(Y ~ trt | blk, d0, statistic = "quadratic",
+                         adjust = fml, learner = riposte_lm_learner(),
+                         adjust_refit = refit, nresample = nres)$p.value
+  }
+  mean(p <= 0.05)
+}
+
+set.seed(1)
+c(refit = size(TRUE), fit_once = size(FALSE))
+#>    refit fit_once 
+#>    0.025    0.675
+```
+
+The refit holds the level; the fit-once shortcut, with an overfit model,
+rejects far more than 5% of the time (here most of the time — the
+overfit residuals are nearly collinear with the observed assignment).
+riposte uses the refit by default. The shortcut is available, and
+honestly labelled, only for this comparison.
+
+## What “exact” means here, precisely
+
+The level is exact in finite samples: under the sharp null the test
+rejects with probability at most the nominal level, for any model and
+any `nresample`. Two things are worth stating plainly so the guarantee
+is not over-read.
+
+- The p-value is a *Monte-Carlo* permutation p-value — the share of the
+  re-randomizations at least as extreme as observed, with the observed
+  assignment included. That observed-inclusion convention is what makes
+  the level exact for any number of draws; the p-value estimates, rather
+  than equals, the full-enumeration value, so it varies a little with
+  the seed.
+- For the omnibus quadratic and the screen, riposte must estimate the
+  covariance of the representations from the re-randomizations (the
+  closed-form moments it uses without adjustment do not apply once the
+  outcome is residualized afresh each draw). It estimates that
+  covariance from the *pooled* set of statistics (observed and draws
+  together) so that the metric is symmetric across assignments; this is
+  what keeps the omnibus exact rather than anti-conservative. The
+  estimation adds Monte-Carlo noise to the *metric*, which affects
+  power, not level, and shrinks as `nresample` grows.
+
+## Choosing a learner
+
+The default is ridge regression, which has a closed form and shrinks its
+coefficients, so it stays stable when there are many covariates — the
+regime where an unpenalized fit overfits. Any function of the form
+`(X, Y, control) -> fitted values` works, so you can supply a random
+forest, a LASSO, or your own:
+
+``` r
+
+rf_learner <- function(X, Y, control) {
+  fit <- randomForest::randomForest(X[control, , drop = FALSE], Y[control])
+  as.numeric(predict(fit, X))
+}
+riposte_test(Y ~ trt | blk, dat, adjust = ~ x1 + x2 + x3, learner = rf_learner)
+```
+
+The exactness guarantee does not depend on the learner being any good. A
+poor model simply yields a less powerful test, never an invalid one —
+the regret-free property the method is named for.
+
+## Cluster-randomized designs
+
+Adjustment composes with cluster randomization: pass `clusters`, and
+riposte collapses to the cluster level (covariates averaged within
+cluster), fits the learner on the control clusters, and refits over
+cluster re-randomizations.
+
+``` r
+
+riposte_test(Y ~ trt | blk, dat, clusters = "cluster_id",
+             adjust = ~ x1 + x2 + x3, nresample = 999)
+```
+
+## When to reach for it
+
+Use covariance adjustment when you have covariates that plausibly
+predict the outcome and you want the extra power without giving up the
+validity of a randomization test. The cost is computational — the
+learner is refit once per re-randomization — and the only tuning that
+affects power (not validity) is the choice of learner and, for the
+omnibus, the screen’s shrinkage. Validity you get for free.
+
+## References
+
+- Bowers, J., Fredrickson, M., Hansen, B., and Yin, X. Regression
+  Without Regrets. In preparation.
+- Rosenbaum, P. R. (2002). *Observational Studies*, 2nd ed. Springer.
+  (Exact permutation inference under the sharp null.)
+- Phipson, B. and Smyth, G. K. (2010). Permutation p-values should never
+  be zero. *Statistical Applications in Genetics and Molecular Biology*
+  9(1).
