@@ -4,12 +4,12 @@ Version: 0.0.0.9004
 Authors@R: c(
     person(given = "Jake",
            family = "Bowers",
-           role = c("aut", "cre"),
+           role = c("aut", "cre", "cph"),
            email = "jake@jakebowers.org",
            comment = c(ORCID = "0000-0002-4048-1166")),
     person(given = "Myla",
            family = "Burton",
-           role = "aut"))
+           role = c("aut", "cph")))
 Description: Tests of the sharp null of no treatment effects that combine several
     representations of an outcome (raw values, ranks, pairwise mean
     distances, a max distance, and a bounded transform) to detect treatment

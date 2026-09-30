@@ -39,11 +39,12 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Jake Bowers \email{jake@jakebowers.org} (\href{https://orcid.org/0000-0002-4048-1166}{ORCID})
+\strong{Maintainer}: Jake Bowers \email{jake@jakebowers.org} (\href{https://orcid.org/0000-0002-4048-1166}{ORCID}) [copyright holder]
 
 Authors:
 \itemize{
-  \item Jake Bowers \email{jake@jakebowers.org} (\href{https://orcid.org/0000-0002-4048-1166}{ORCID})
+  \item Jake Bowers \email{jake@jakebowers.org} (\href{https://orcid.org/0000-0002-4048-1166}{ORCID}) [copyright holder]
+  \item Myla Burton [copyright holder]
 }
 
 }
