@@ -1,0 +1,46 @@
+Package: riposte
+Title: Combined Randomization-Based Tests Across Outcome Representations
+Version: 0.0.0.9004
+Authors@R:
+    person(given = "Jake",
+           family = "Bowers",
+           role = c("aut", "cre"),
+           email = "jake@jakebowers.org",
+           comment = c(ORCID = "0000-0002-4048-1166"))
+Description: Tests of the sharp null of no treatment effects that combine several
+    representations of an outcome (raw values, ranks, pairwise mean
+    distances, a max distance, and a bounded transform) to detect treatment
+    effects a difference of means misses, in completely randomized, block-
+    randomized, and cluster-randomized experiments. The package combines the
+    representations three ways: a quadratic (energy/distance)
+    omnibus that uses the full permutation covariance, a Cauchy combination
+    that uses only the marginal calibrations, and a max combination. A screen
+    chooses between the quadratic and the Cauchy from the conditioning of the
+    permutation covariance, an ancillary quantity. By default, p-values use
+    direct re-randomization. Optional chi-square and Cauchy approximations are
+    available for unadjusted quadratic and Cauchy tests. The acronym is Randomization
+    Inference for Power via Outcome representationS, Tests, and Estimation.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
+Depends:
+    R (>= 4.1.0)
+Imports:
+    MASS,
+    stats
+Suggests:
+    coin,
+    fastperm,
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    covr,
+    pkgdown
+Remotes:
+    bowers-illinois-edu/fastperm
+Config/testthat/edition: 3
+Config/Needs/website: pkgdown
+VignetteBuilder: knitr
+URL: https://github.com/bowers-illinois-edu/riposte, https://bowers-illinois-edu.github.io/riposte/
+BugReports: https://github.com/bowers-illinois-edu/riposte/issues

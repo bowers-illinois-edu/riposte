@@ -1,0 +1,49 @@
+url: https://bowers-illinois-edu.github.io/riposte/
+
+template:
+  bootstrap: 5
+
+reference:
+- title: Tests
+  desc: The user-facing test and per-representation diagnostic.
+  contents:
+  - riposte_test
+  - riposte_components
+- title: Outcome representations
+  desc: The views of the outcome that get combined; an open, user-supplied set.
+  contents:
+  - riposte_reps_default
+  - riposte_reps_proposal
+  - riposte_mean_dist
+  - riposte_mean_rank_dist
+  - riposte_max_dist
+  - riposte_rank
+  - riposte_huber
+  - riposte_tanh
+  - riposte_stephenson_scores
+  - riposte_stephenson_reps
+- title: Combination screen
+  desc: Choosing or blending the quadratic and the Cauchy from the conditioning of the covariance.
+  contents:
+  - riposte_screen
+  - riposte_screen_control
+- title: Covariance adjustment
+  desc: Controls-only learners, refit inside every re-randomization.
+  contents:
+  - riposte_adjust
+  - riposte_ridge_learner
+  - riposte_lm_learner
+- title: Building blocks
+  desc: The permutation engine and the closed-form moments behind the tests.
+  contents:
+  - riposte_sw_moments
+  - riposte_block_draws
+  - riposte_score_matrix
+  - riposte_midp
+  - riposte_acat_term
+
+articles:
+- title: Articles
+  contents:
+  - riposte
+  - covariance-adjustment

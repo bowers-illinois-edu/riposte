@@ -1,0 +1,38 @@
+# R session / history
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.Renviron
+
+# build artifacts
+*.tar.gz
+*.Rcheck/
+/doc/
+/Meta/
+src/*.o
+src/*.so
+src/*.dll
+
+# pkgdown output
+/docs/
+
+# OS / editor cruft
+.DS_Store
+*~
+
+# Claude Code local settings and scratch (shared .claude/settings.json may be tracked)
+.claude/settings.local.json
+scratchpad/
+
+# Reference literature PDFs (copyrighted; keep out of git history, esp. for the
+# eventual public release). Kept on disk under dev/ for reading, not tracked.
+dev/*.pdf
+
+# Working notes kept on disk but out of the public repository: session
+# handoffs, the fastperm integration plan, the original build spec (names the
+# NSF proposal and local paths), and a draft corollary for a coauthored paper.
+HANDOFF.md
+FASTPERM_INTEGRATION.md
+dev/riposte_spec.md
+dev/reg-no-regrets-corollary.tex
