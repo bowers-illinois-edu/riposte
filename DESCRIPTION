@@ -1,12 +1,15 @@
 Package: riposte
 Title: Combined Randomization-Based Tests Across Outcome Representations
 Version: 0.0.0.9004
-Authors@R:
+Authors@R: c(
     person(given = "Jake",
            family = "Bowers",
            role = c("aut", "cre"),
            email = "jake@jakebowers.org",
-           comment = c(ORCID = "0000-0002-4048-1166"))
+           comment = c(ORCID = "0000-0002-4048-1166")),
+    person(given = "Myla",
+           family = "Burton",
+           role = "aut"))
 Description: Tests of the sharp null of no treatment effects that combine several
     representations of an outcome (raw values, ranks, pairwise mean
     distances, a max distance, and a bounded transform) to detect treatment
