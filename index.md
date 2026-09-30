@@ -137,4 +137,4 @@ for a worked, policy-oriented introduction.
 
 ## License
 
-MIT (c) Jake Bowers.
+MIT (c) Jake Bowers and Myla Burton.

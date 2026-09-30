@@ -1,4 +1,4 @@
 # License
 
     YEAR: 2026
-    COPYRIGHT HOLDER: Jake Bowers
+    COPYRIGHT HOLDER: Jake Bowers and Myla Burton

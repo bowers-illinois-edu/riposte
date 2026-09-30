@@ -2,10 +2,10 @@
 
 ## Authors
 
-- **Jake Bowers**. Author, maintainer.
+- **Jake Bowers**. Author, maintainer, copyright holder.
   [](https://orcid.org/0000-0002-4048-1166)
 
-- **Myla Burton**. Author.
+- **Myla Burton**. Author, copyright holder.
 
 ## Citation
 

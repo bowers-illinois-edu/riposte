@@ -39,9 +39,11 @@ Useful links:
 ## Author
 
 **Maintainer**: Jake Bowers <jake@jakebowers.org>
-([ORCID](https://orcid.org/0000-0002-4048-1166))
+([ORCID](https://orcid.org/0000-0002-4048-1166)) \[copyright holder\]
 
 Authors:
 
 - Jake Bowers <jake@jakebowers.org>
-  ([ORCID](https://orcid.org/0000-0002-4048-1166))
+  ([ORCID](https://orcid.org/0000-0002-4048-1166)) \[copyright holder\]
+
+- Myla Burton \[copyright holder\]
