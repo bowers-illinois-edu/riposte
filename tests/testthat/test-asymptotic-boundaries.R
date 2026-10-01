@@ -30,6 +30,13 @@ test_that("a p-value near one retains its finite Cauchy statistic", {
   expect_equal(res$statistic / expected, 1, tolerance = 1e-12)
 })
 
+test_that("the chi-square-1 lower tail stays finite at extreme small x", {
+  x <- 2e-40
+  expect_equal(riposte_log_chisq1_lower(x), 0.5 * log(2 / pi) + 0.5 * log(x),
+               tolerance = 1e-12)
+  expect_true(is.finite(riposte_log_chisq1_lower(x)))
+  })
+
 test_that("Cauchy preserves a tiny tail even if its statistic overflows", {
   d <- data.frame(Y = rep(0:1, each = 712), trt = rep(0:1, each = 712))
   expected <- pchisq(1423, df = 1, lower.tail = FALSE)
