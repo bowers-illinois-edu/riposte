@@ -2,6 +2,19 @@
 ## The assignment design still determines the exact mean and covariance of
 ## the treated-score sums. Only the reference used for the p-value changes.
 
+## Log of the chi-square-1 lower tail, robust to a platform-dependent
+## underflow in pchisq() at extreme small x
+## `tol` uses the closed-form small-x asymptotic which only calls log() and so
+## is platform-independent at this extreme
+riposte_log_chisq1_lower <- function(x, tol = 1e-30) {
+  small <- x < tol
+  out <- numeric(length(x))
+  out[small] <- 0.5 * log(2 / pi) + 0.5 * log(x[small])
+  out[!small] <- stats::pchisq(x[!small], df = 1, lower.tail = TRUE, log.p =
+    TRUE)
+  out
+}
+
 riposte_test_asymptotic <- function(des, sm, statistic) {
   moments <- riposte_sw_moments(sm$scores, des$z, des$block)
   riposte_assert_testable(moments$Sigma)
@@ -35,7 +48,7 @@ riposte_test_asymptotic <- function(des, sm, statistic) {
     ## Calculate both tails directly. Subtraction from 1 would erase a
     ## small tail, turning a finite Cauchy term into an artificial infinity.
     log_p <- stats::pchisq(squared, df = 1, lower.tail = FALSE, log.p = TRUE)
-    log_1mp <- stats::pchisq(squared, df = 1, lower.tail = TRUE, log.p = TRUE)
+    log_1mp <- log_1mp <- riposte_log_chisq1_lower(squared)
     result <- riposte_cauchy_log_tails(log_p, log_1mp)
     result$df <- NA_integer_
     result$component_p <- stats::setNames(exp(log_p), colnames(scores))
