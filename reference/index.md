@@ -35,6 +35,10 @@ The views of the outcome that get combined; an open, user-supplied set.
   : Stephenson rank scores
 - [`riposte_stephenson_reps()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_stephenson_reps.md)
   : Stephenson rank-score representations at several tuning values
+- [`riposte_poly_scores()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_poly_scores.md)
+  : Polynomial rank scores
+- [`riposte_poly_reps()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_poly_reps.md)
+  : Polynomial rank-score representations at several tuning values
 
 ## Combination screen
 

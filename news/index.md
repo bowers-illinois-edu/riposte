@@ -1,5 +1,33 @@
 # Changelog
 
+## riposte 0.0.0.9005
+
+- Polynomial rank scores as representations:
+  `riposte_poly_scores(y, zeta)` gives the unit at within-block rank k
+  of n_b the score `(k / (n_b + 1))^(zeta - 1)`, the score of Kim, Su,
+  Bowers, and Li, and `riposte_poly_reps(zeta)` returns one
+  representation per value of `zeta`. The default,
+  `zeta = c(2, 7, 12, 17, 22)`, is the set in Bowers and Burton’s
+  rank-score tables. Unlike the Stephenson score, the polynomial score
+  stays in \[0, 1) in every block, and `zeta` need not be a whole
+  number.
+- The main vignette has a section on polynomial rank scores: how to
+  supply your own `zeta`, how the largest `zeta` relates to the number
+  of units per block whose gains the test should detect, and how to
+  space the values so neighbouring scores are not near-copies of each
+  other.
+- The main vignette’s statement about the default p-value now says what
+  the exactness means: if the program changed no one’s outcome, the
+  chance of a p-value at or below 0.05 is at most 0.05, however many
+  units or blocks there are.
+- The covariance-adjustment paragraph of the main vignette no longer
+  claims, without evidence in the package, that adjusting for covariates
+  unrelated to the outcome loses almost no power. It now reports a
+  simulation: with two covariates of pure noise and treatment raising
+  the standard deviation from 1 to 1.35, the unadjusted test rejected in
+  85 of 100 experiments and the adjusted test in 83. That simulation is
+  a new test in `tests/testthat/test-power.R`.
+
 ## riposte 0.0.0.9004
 
 - [`riposte_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_test.md)

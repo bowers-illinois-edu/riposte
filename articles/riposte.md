@@ -21,8 +21,9 @@ something.
 once — its values, its ranks, how far apart units are, a bounded version
 — and combining what each view sees. By default it reports a single
 p-value that is *exact*: it comes from the actual randomization you ran,
-not from a large-sample approximation, so it is valid however many units
-or blocks you have.
+not from a large-sample approximation. So if the program changed no
+one’s outcome, the chance that the p-value falls at or below 0.05 is at
+most 0.05, however many units or blocks you have.
 
 ## A worked example
 
@@ -205,6 +206,204 @@ riposte_test(outcome ~ treated | block, data = dat,
 #> [1] 0.001
 ```
 
+## Rank scores that weight the top of each block
+
+Some programs help a few people a great deal and leave the rest alone. A
+rank score that gives the top of each block’s ranking more weight than
+the rest responds to that pattern through the ranks alone. `riposte`
+offers the polynomial rank score of Kim, Su, Bowers, and Li (arXiv
+2605.08027): the unit at rank $`k`$ in a block of $`n_b`$ units gets
+
+``` math
+\left(\frac{k}{n_b + 1}\right)^{\zeta - 1}.
+```
+
+At $`\zeta = 2`$ the score is the rank divided by $`n_b + 1`$, which
+gives the Wilcoxon rank-sum test. As $`\zeta`$ grows, more of each
+block’s total score sits on its highest-ranked units. The score always
+lies between 0 and 1, so blocks of different sizes enter on the same
+scale.
+
+[`riposte_poly_reps()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_poly_reps.md)
+returns one representation per value of $`\zeta`$. Its default,
+$`\zeta`$ = 2, 7, 12, 17, 22, is the set in Bowers and Burton’s
+rank-score tables. Here are the five scores on the spread-change
+experiment above, combined and one at a time:
+
+``` r
+
+riposte_test(outcome ~ treated | block, data = dat,
+             representations = riposte_poly_reps(), nresample = 999, seed = 1)
+#> riposte test of the sharp null of no effect
+#>   360 units in 12 blocks; 999 re-randomizations
+#>   screen (shrink, lambda = 0.042); condition number 134869.4
+#>   combination: quadratic
+#>   statistic = 21.9384,  p-value = 0.0010
+riposte_components(outcome ~ treated | block, data = dat,
+                   representations = riposte_poly_reps(), nresample = 999, seed = 1)
+#> riposte components
+#>   360 units in 12 blocks; 999 re-randomizations
+#>   condition number of the representation correlations: 134869.4
+#>   representation two-sided mid-p p-values:
+#>     poly2            0.9345
+#>     poly7            0.0045
+#>     poly12           0.0025
+#>     poly17           0.0015
+#>     poly22           0.0025
+```
+
+The score at $`\zeta = 2`$ detects a shift in location, and the two
+groups have the same mean, so it finds nothing. The program widens the
+spread, which puts more treated units at the top of each block, so the
+scores at larger $`\zeta`$ find it.
+
+### Choosing your own values of $`\zeta`$
+
+Pass any numbers of at least 1 to
+[`riposte_poly_reps()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_poly_reps.md).
+They need not be whole numbers. Three questions decide which numbers to
+pass.
+
+The smallest value is 2. At $`\zeta = 1`$ every unit scores 1, and
+`riposte` drops a score that is constant within every block.
+
+The largest value depends on how few units per block you want the test
+to be able to find gains in. Write $`x = k/(n_b + 1)`$ for a unit’s rank
+as a fraction of its block. If $`x`$ were spread evenly between 0 and 1,
+the score-weighted average distance from the top of the block would be
+$`1/(\zeta + 1)`$ of the block, so the score at $`\zeta`$ concentrates
+on roughly the top $`n_b/(\zeta + 1)`$ units. To find gains confined to
+about $`m`$ units per block, make the largest $`\zeta`$ about
+$`n_b/m - 1`$. The code below computes the exact average for blocks of
+30, the size in our example:
+
+``` r
+
+nb <- 30
+k <- seq_len(nb)
+zetas <- c(2, 5, 7, 12, 14, 22, 29)
+where <- sapply(zetas, function(zeta) {
+  s <- riposte_poly_scores(k, zeta)
+  sum((nb + 1 - k) * s) / sum(s)      # score-weighted ranks from the top
+})
+round(rbind(zeta = zetas, exact = where, approx = nb / (zetas + 1)), 1)
+#>        [,1] [,2] [,3] [,4] [,5] [,6] [,7]
+#> zeta    2.0  5.0  7.0 12.0 14.0 22.0 29.0
+#> exact  10.7  5.6  4.3  2.9  2.6  1.9  1.6
+#> approx 10.0  5.0  3.8  2.3  2.0  1.3  1.0
+```
+
+Here `exact` counts the top unit as 1 rank from the top, and it runs 0.5
+to 0.7 units above `approx`.
+
+The values in between should not be near-copies of one another. Two
+scores that move together across re-randomizations carry almost the same
+information, yet the quadratic combination counts each as a separate
+direction and has to invert their nearly singular correlation matrix.
+With $`x`$ spread evenly, the scores at $`\zeta`$ and $`\zeta'`$
+correlate at
+
+``` math
+\frac{2\sqrt{uv}}{u + v}, \qquad u = 2\zeta - 1,\; v = 2\zeta' - 1,
+```
+
+which depends only on the ratio $`v/u`$. Equal steps in $`\zeta`$ give
+neighbours whose correlation climbs toward 1. Equal ratios in
+$`2\zeta - 1`$ give every neighbouring pair the same correlation:
+tripling $`2\zeta - 1`$ from 3 gives $`\zeta`$ = 2, 5, 14, 41, and each
+neighbouring pair correlates at $`2\sqrt{3}/4 = 0.87`$. For blocks of
+30, the set 2, 5, 14 reaches about 2.6 units from the top, by the
+`exact` row of the table above. Within one block, the correlation of two
+treated-unit sums across re-randomizations equals the correlation of the
+two score vectors, so you can check any candidate set for your own block
+size before running a test:
+
+``` r
+
+score_cor <- function(zetas, nb) {
+  k <- seq_len(nb)
+  S <- sapply(zetas, function(zeta) riposte_poly_scores(k, zeta))
+  dimnames(S) <- list(NULL, paste0("zeta", zetas))
+  cor(S)
+}
+round(score_cor(c(2, 7, 12, 17, 22), nb = 30), 3)
+#>        zeta2 zeta7 zeta12 zeta17 zeta22
+#> zeta2  1.000 0.786  0.646  0.562  0.506
+#> zeta7  0.786 1.000  0.962  0.905  0.853
+#> zeta12 0.646 0.962  1.000  0.985  0.957
+#> zeta17 0.562 0.905  0.985  1.000  0.992
+#> zeta22 0.506 0.853  0.957  0.992  1.000
+round(score_cor(c(2, 5, 14), nb = 30), 3)
+#>        zeta2 zeta5 zeta14
+#> zeta2  1.000 0.870  0.608
+#> zeta5  0.870 1.000  0.869
+#> zeta14 0.608 0.869  1.000
+
+# ratio of the largest to the smallest eigenvalue: how unstable the inverse is
+condition <- function(R) { ev <- eigen(R)$values; max(ev) / min(ev) }
+condition(score_cor(c(2, 7, 12, 17, 22), nb = 30))
+#> [1] 134869.4
+condition(score_cor(c(2, 5, 14), nb = 30))
+#> [1] 69.84958
+```
+
+From $`\zeta = 7`$ up, the default set’s neighbours correlate at 0.96 or
+more, and the ratio of its largest to its smallest eigenvalue is in the
+hundreds of thousands. The default screen still runs on it, because it
+shrinks the correlation matrix toward the identity until that ratio is
+100 (the `threshold` of
+[`riposte_screen_control()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_screen_control.md)).
+The set 2, 5, 14 needs no shrinking. A set chosen this way, for these
+blocks of 30:
+
+``` r
+
+riposte_test(outcome ~ treated | block, data = dat,
+             representations = riposte_poly_reps(c(2, 5, 14)),
+             nresample = 999, seed = 1)
+#> riposte test of the sharp null of no effect
+#>   360 units in 12 blocks; 999 re-randomizations
+#>   screen (shrink, lambda = 0.000); condition number 69.8
+#>   combination: quadratic
+#>   statistic = 28.5797,  p-value = 0.0010
+```
+
+These correlations describe the scores under the null hypothesis; they
+do not say which set is more powerful against a particular effect. A
+larger $`\zeta`$ can add power against gains among very few units even
+when it correlates highly with its neighbour under the null.
+
+When blocks differ in size, one value of $`\zeta`$ concentrates on the
+same fraction of every block, about $`1/(\zeta + 1)`$, not on the same
+number of units.
+
+### Adding rank scores to the six defaults
+
+The six default representations already include the rank, and once each
+score is centred within its block, the score at $`\zeta = 2`$ is the
+rank divided by $`n_b + 1`$. When every block has the same size, the two
+are exactly proportional. So leave $`\zeta = 2`$ out when you add
+polynomial scores to the six:
+
+``` r
+
+riposte_test(outcome ~ treated | block, data = dat,
+             representations = c(riposte_reps_default(),
+                                 riposte_poly_reps(c(5, 14))),
+             nresample = 999, seed = 1)
+#> riposte test of the sharp null of no effect
+#>   360 units in 12 blocks; 999 re-randomizations
+#>   screen (shrink, lambda = 0.042); condition number 2386.5
+#>   combination: quadratic
+#>   statistic = 41.8322,  p-value = 0.0010
+```
+
+These tests, like every test in `riposte`, test the sharp null
+hypothesis that the program changed no one’s outcome. Kim, Su, Bowers,
+and Li use the same scores to test a different hypothesis, about how
+many units had an effect larger than a given amount. `riposte` does not
+compute those tests; the `CMRSS` package does.
+
 ## Bringing in covariates
 
 If you measured covariates that predict the outcome, you can use them to
@@ -223,9 +422,19 @@ riposte_test(outcome ~ treated | block, data = dat,
 #> [1] 0.001
 ```
 
-When the covariates predict the outcome, adjustment makes the test more
-powerful; when they do not, it costs almost nothing, and either way the
-p-value stays valid because the model is refit on each re-randomization.
+When the covariates predict the outcome, the model removes variation in
+the outcome that the treatment did not cause, which makes the test more
+powerful. When they do not, the model has little to remove. In 100
+simulated experiments shaped like the one above, but with treatment
+raising the standard deviation from 1 to 1.35 and with two covariates of
+pure noise, the unadjusted test rejected at the 0.05 level in 85 percent
+of experiments and the adjusted test in 83 percent. That simulation is
+one of the package’s tests, in `tests/testthat/test-power.R` in the
+source repository.
+
+Whether or not the covariates predict the outcome, the model is refit on
+each re-randomization, so the chance of a p-value at or below 0.05 when
+the program changed no one’s outcome stays at most 0.05.
 
 ## Cluster-randomized designs
 

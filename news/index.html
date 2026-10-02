@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9004</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9005</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,6 +34,13 @@
       <small>Source: <a href="https://github.com/bowers-illinois-edu/riposte/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.0.9005" id="riposte-0009005">riposte 0.0.0.9005<a class="anchor" aria-label="anchor" href="#riposte-0009005"></a></h2>
+<ul><li>Polynomial rank scores as representations: <code>riposte_poly_scores(y, zeta)</code> gives the unit at within-block rank k of n_b the score <code>(k / (n_b + 1))^(zeta - 1)</code>, the score of Kim, Su, Bowers, and Li, and <code>riposte_poly_reps(zeta)</code> returns one representation per value of <code>zeta</code>. The default, <code>zeta = c(2, 7, 12, 17, 22)</code>, is the set in Bowers and Burton’s rank-score tables. Unlike the Stephenson score, the polynomial score stays in [0, 1) in every block, and <code>zeta</code> need not be a whole number.</li>
+<li>The main vignette has a section on polynomial rank scores: how to supply your own <code>zeta</code>, how the largest <code>zeta</code> relates to the number of units per block whose gains the test should detect, and how to space the values so neighbouring scores are not near-copies of each other.</li>
+<li>The main vignette’s statement about the default p-value now says what the exactness means: if the program changed no one’s outcome, the chance of a p-value at or below 0.05 is at most 0.05, however many units or blocks there are.</li>
+<li>The covariance-adjustment paragraph of the main vignette no longer claims, without evidence in the package, that adjusting for covariates unrelated to the outcome loses almost no power. It now reports a simulation: with two covariates of pure noise and treatment raising the standard deviation from 1 to 1.35, the unadjusted test rejected in 85 of 100 experiments and the adjusted test in 83. That simulation is a new test in <code>tests/testthat/test-power.R</code>.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9004" id="riposte-0009004">riposte 0.0.0.9004<a class="anchor" aria-label="anchor" href="#riposte-0009004"></a></h2>
 <ul><li>
