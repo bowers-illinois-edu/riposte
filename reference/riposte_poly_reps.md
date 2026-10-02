@@ -11,7 +11,7 @@ top of each block across several weightings instead of one.
 ## Usage
 
 ``` r
-riposte_poly_reps(zeta = c(2, 7, 12, 17, 22))
+riposte_poly_reps(zeta = c(2, 7, 12, 17, 22), tail = c("upper", "lower"))
 ```
 
 ## Arguments
@@ -20,9 +20,15 @@ riposte_poly_reps(zeta = c(2, 7, 12, 17, 22))
 
   vector of tuning values, each `>= 1`.
 
+- tail:
+
+  `"upper"` (default) or `"lower"`, passed to
+  [`riposte_poly_scores()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_poly_scores.md).
+
 ## Value
 
 a named list of representation functions, named `poly2`, `poly7`, ...
+for the upper tail and `polylow2`, `polylow7`, ... for the lower tail.
 
 ## Details
 
@@ -41,6 +47,12 @@ correlation approaches 1.
 [`riposte_reps_default()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_reps_default.md),
 which already holds the rank, leave it out:
 `c(riposte_reps_default(), riposte_poly_reps(c(7, 12, 17, 22)))`.
+
+With `tail = "lower"` the scores weight the bottom of each block, for a
+treatment that lowers the outcomes of a few units; see
+[`riposte_poly_scores()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_poly_scores.md)
+and
+[`vignette("harm")`](https://bowers-illinois-edu.github.io/riposte/articles/harm.md).
 
 ## See also
 

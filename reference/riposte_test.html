@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9005</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,6 +56,7 @@
 <span>  cluster_agg <span class="op">=</span> <span class="va">mean</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  engine <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"permute"</span>, <span class="st">"saddlepoint"</span>, <span class="st">"asymptotic"</span><span class="op">)</span>,</span>
+<span>  alternative <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"two.sided"</span>, <span class="st">"greater"</span>, <span class="st">"less"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -90,7 +91,8 @@ must be constant within a cluster and clusters must nest within blocks.</p></dd>
 
 <dt id="arg-statistic">statistic<a class="anchor" aria-label="anchor" href="#arg-statistic"></a></dt>
 <dd><p>which combination to use: <code>"screen"</code> (default), <code>"quadratic"</code>,
-<code>"cauchy"</code>, or <code>"max"</code>.</p></dd>
+<code>"cauchy"</code>, or <code>"max"</code>. With a one-sided <code>alternative</code>, only <code>"max"</code> (the
+default then) and <code>"cauchy"</code> are available.</p></dd>
 
 
 <dt id="arg-representations">representations<a class="anchor" aria-label="anchor" href="#arg-representations"></a></dt>
@@ -162,6 +164,19 @@ rank-deficient metric). It is an approximation, supports <code>statistic</code> 
 needs a <code>fastperm</code> with <code>fastperm_spa_quadratic</code>).</p></dd>
 
 
+<dt id="arg-alternative">alternative<a class="anchor" aria-label="anchor" href="#arg-alternative"></a></dt>
+<dd><p><code>"two.sided"</code> (default) counts evidence in either
+direction. <code>"greater"</code> counts only treated-score sums above their
+re-randomization mean, and <code>"less"</code> only sums below it. For scores that rise
+with the outcome — the raw outcome, the rank, and both tails of
+<code><a href="riposte_poly_reps.html">riposte_poly_reps()</a></code> — <code>"less"</code> asks whether treated outcomes are lower,
+which is how to look for harm. The distance representations do not rise
+with the outcome, so a one-sided test of them asks instead whether treated
+units sit closer to (<code>"less"</code>) or farther from (<code>"greater"</code>) the rest of
+their block. Every alternative tests the same sharp null hypothesis of no
+effect; see Details.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>reserved.</p></dd>
 
@@ -189,6 +204,18 @@ alone does not ensure this when individual scores dominate their variance.
 For the Cauchy combination, dependent component p-values do not in general
 yield an exactly standard Cauchy statistic: the analytic upper tail is an
 approximation, not a finite-sample level guarantee.</p>
+<p>A one-sided test is still a test of the sharp null of no effect, and it holds
+its level under that null like the two-sided test. With <code>"less"</code>, the
+default engine, no covariance adjustment, representations that depend on the
+outcome only through its within-block ranks, and no tied outcomes, it also
+holds its level under the weaker hypothesis that the treatment lowered no
+unit's outcome, though it may have raised some (Caughey, Dafoe, Li, and
+Miratrix 2023, "Randomisation inference beyond the sharp null", JRSS-B 85:
+1471-1491). The ranks in each block are the same numbers whatever the
+treatment did, so the re-randomization distribution does not change, and
+raising treated outcomes can only raise the observed treated-score sums, so
+the p-value can only grow. The same holds for <code>"greater"</code> with "raised" and
+"lowered" exchanged.</p>
 <p>The asymptotic Cauchy calculation retains both tails on the log scale to
 avoid artificial zeros and ones. An exactly zero component statistic gives
 an individual p-value of one and a Cauchy term of negative infinity; the

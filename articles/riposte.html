@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9005</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -295,7 +295,7 @@ and one at a time:</p>
 <span><span class="co">#&gt;   360 units in 12 blocks; 999 re-randomizations</span></span>
 <span><span class="co">#&gt;   condition number of the representation correlations: 134869.4</span></span>
 <span><span class="co">#&gt;   representation two-sided mid-p p-values:</span></span>
-<span><span class="co">#&gt;     poly2            0.9345</span></span>
+<span><span class="co">#&gt;     poly2            0.9375</span></span>
 <span><span class="co">#&gt;     poly7            0.0045</span></span>
 <span><span class="co">#&gt;     poly12           0.0025</span></span>
 <span><span class="co">#&gt;     poly17           0.0015</span></span>
@@ -460,6 +460,11 @@ out when you add polynomial scores to the six:</p>
 <span><span class="co">#&gt;   screen (shrink, lambda = 0.042); condition number 2386.5</span></span>
 <span><span class="co">#&gt;   combination: quadratic</span></span>
 <span><span class="co">#&gt;   statistic = 41.8322,  p-value = 0.0010</span></span></code></pre></div>
+<p>To look for a few people <em>harmed</em> by a program, use
+<code>riposte_poly_reps(tail = "lower")</code>, which weights the bottom
+of each block, with <code>riposte_test(alternative = "less")</code>,
+which counts only evidence that treated outcomes are lower.
+<code><a href="../articles/harm.html">vignette("harm")</a></code> works through that case.</p>
 <p>These tests, like every test in <code>riposte</code>, test the sharp
 null hypothesis that the program changed no one’s outcome. Kim, Su,
 Bowers, and Li use the same scores to test a different hypothesis, about

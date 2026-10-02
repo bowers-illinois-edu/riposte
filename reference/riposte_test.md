@@ -20,6 +20,7 @@ riposte_test(
   cluster_agg = mean,
   seed = NULL,
   engine = c("permute", "saddlepoint", "asymptotic"),
+  alternative = c("two.sided", "greater", "less"),
   ...
 )
 ```
@@ -55,7 +56,8 @@ riposte_test(
 - statistic:
 
   which combination to use: `"screen"` (default), `"quadratic"`,
-  `"cauchy"`, or `"max"`.
+  `"cauchy"`, or `"max"`. With a one-sided `alternative`, only `"max"`
+  (the default then) and `"cauchy"` are available.
 
 - representations:
 
@@ -134,6 +136,21 @@ riposte_test(
   the `fastperm` package (the quadratic needs a `fastperm` with
   `fastperm_spa_quadratic`).
 
+- alternative:
+
+  `"two.sided"` (default) counts evidence in either direction.
+  `"greater"` counts only treated-score sums above their
+  re-randomization mean, and `"less"` only sums below it. For scores
+  that rise with the outcome — the raw outcome, the rank, and both tails
+  of
+  [`riposte_poly_reps()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_poly_reps.md)
+  — `"less"` asks whether treated outcomes are lower, which is how to
+  look for harm. The distance representations do not rise with the
+  outcome, so a one-sided test of them asks instead whether treated
+  units sit closer to (`"less"`) or farther from (`"greater"`) the rest
+  of their block. Every alternative tests the same sharp null hypothesis
+  of no effect; see Details.
+
 - ...:
 
   reserved.
@@ -162,6 +179,19 @@ dominate their variance. For the Cauchy combination, dependent component
 p-values do not in general yield an exactly standard Cauchy statistic:
 the analytic upper tail is an approximation, not a finite-sample level
 guarantee.
+
+A one-sided test is still a test of the sharp null of no effect, and it
+holds its level under that null like the two-sided test. With `"less"`,
+the default engine, no covariance adjustment, representations that
+depend on the outcome only through its within-block ranks, and no tied
+outcomes, it also holds its level under the weaker hypothesis that the
+treatment lowered no unit's outcome, though it may have raised some
+(Caughey, Dafoe, Li, and Miratrix 2023, "Randomisation inference beyond
+the sharp null", JRSS-B 85: 1471-1491). The ranks in each block are the
+same numbers whatever the treatment did, so the re-randomization
+distribution does not change, and raising treated outcomes can only
+raise the observed treated-score sums, so the p-value can only grow. The
+same holds for `"greater"` with "raised" and "lowered" exchanged.
 
 The asymptotic Cauchy calculation retains both tails on the log scale to
 avoid artificial zeros and ones. An exactly zero component statistic

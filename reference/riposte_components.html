@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9005</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,6 +50,7 @@
 <span>  nresample <span class="op">=</span> <span class="fl">1999L</span>,</span>
 <span>  cluster_agg <span class="op">=</span> <span class="va">mean</span>,</span>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  alternative <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"two.sided"</span>, <span class="st">"greater"</span>, <span class="st">"less"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -94,14 +95,19 @@ mean by default.</p></dd>
 <dd><p>optional integer seed (L'Ecuyer-CMRG) for reproducibility.</p></dd>
 
 
+<dt id="arg-alternative">alternative<a class="anchor" aria-label="anchor" href="#arg-alternative"></a></dt>
+<dd><p><code>"two.sided"</code> (default), <code>"greater"</code>, or <code>"less"</code>: the
+direction of each representation's mid-p value; see <code><a href="riposte_test.html">riposte_test()</a></code>.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>reserved.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>an object of class <code>riposte_components</code> with the representations' two
-sided mid-p permutation p-values, the closed-form covariance <code>Sigma</code>, its
+    <p>an object of class <code>riposte_components</code> with the representations'
+mid-p permutation p-values in the requested direction, the closed-form covariance <code>Sigma</code>, its
 <code>condition</code> number, the kept/dropped representations, and the score matrix.</p>
     </div>
 

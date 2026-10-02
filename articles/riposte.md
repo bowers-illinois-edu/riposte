@@ -245,7 +245,7 @@ riposte_components(outcome ~ treated | block, data = dat,
 #>   360 units in 12 blocks; 999 re-randomizations
 #>   condition number of the representation correlations: 134869.4
 #>   representation two-sided mid-p p-values:
-#>     poly2            0.9345
+#>     poly2            0.9375
 #>     poly7            0.0045
 #>     poly12           0.0025
 #>     poly17           0.0015
@@ -397,6 +397,13 @@ riposte_test(outcome ~ treated | block, data = dat,
 #>   combination: quadratic
 #>   statistic = 41.8322,  p-value = 0.0010
 ```
+
+To look for a few people *harmed* by a program, use
+`riposte_poly_reps(tail = "lower")`, which weights the bottom of each
+block, with `riposte_test(alternative = "less")`, which counts only
+evidence that treated outcomes are lower.
+[`vignette("harm")`](https://bowers-illinois-edu.github.io/riposte/articles/harm.md)
+works through that case.
 
 These tests, like every test in `riposte`, test the sharp null
 hypothesis that the program changed no one’s outcome. Kim, Su, Bowers,

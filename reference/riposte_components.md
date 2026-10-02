@@ -14,6 +14,7 @@ riposte_components(
   nresample = 1999L,
   cluster_agg = mean,
   seed = NULL,
+  alternative = c("two.sided", "greater", "less"),
   ...
 )
 ```
@@ -59,13 +60,19 @@ riposte_components(
 
   optional integer seed (L'Ecuyer-CMRG) for reproducibility.
 
+- alternative:
+
+  `"two.sided"` (default), `"greater"`, or `"less"`: the direction of
+  each representation's mid-p value; see
+  [`riposte_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_test.md).
+
 - ...:
 
   reserved.
 
 ## Value
 
-an object of class `riposte_components` with the representations' two
-sided mid-p permutation p-values, the closed-form covariance `Sigma`,
-its `condition` number, the kept/dropped representations, and the score
-matrix.
+an object of class `riposte_components` with the representations' mid-p
+permutation p-values in the requested direction, the closed-form
+covariance `Sigma`, its `condition` number, the kept/dropped
+representations, and the score matrix.

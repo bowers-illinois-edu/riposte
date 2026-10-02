@@ -72,6 +72,6 @@ The permutation engine and the closed-form moments behind the tests.
 - [`riposte_score_matrix()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_score_matrix.md)
   : Build the within-block-centred score matrix from representations
 - [`riposte_midp()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_midp.md)
-  : Two-sided mid-p permutation p-values
+  : Mid-p permutation p-values
 - [`riposte_acat_term()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_acat_term.md)
   : Pole-aware Cauchy (ACAT) transform of p-values
