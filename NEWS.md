@@ -1,3 +1,38 @@
+# riposte 0.0.0.9006
+
+* `riposte_test()` and `riposte_components()` take `alternative = "greater"`
+  or `"less"` for a one-sided test of the sharp null of no effect. A one-sided
+  test counts only treated-score sums above (or below) their re-randomization
+  mean. It is available for the max combination, which becomes the default
+  when `alternative` is one-sided, and for the Cauchy combination; the
+  quadratic and the screen have no one-sided form. The permutation, asymptotic
+  (Cauchy, from one-sided normal tails), and saddlepoint (Cauchy, from
+  `fastperm`'s one-sided saddlepoint) engines and covariance adjustment all
+  support it. `riposte_midp()` takes the same argument.
+* `riposte_poly_scores()` and `riposte_poly_reps()` take `tail = "lower"`,
+  scores that weight the bottom of each block for a treatment that lowers the
+  outcomes of a few units. The lower-tail score of the unit at rank k of n_b
+  is `-((n_b + 1 - k) / (n_b + 1))^(zeta - 1)`; the minus sign makes it rise
+  with the outcome, so `alternative = "less"` means lower treated outcomes for
+  the raw outcome, the rank, and both tails.
+* With rank-based representations, the default engine, no covariance
+  adjustment, and no tied outcomes, the one-sided test is also valid for the
+  hypothesis that the treatment lowered no unit's outcome (Caughey, Dafoe, Li,
+  and Miratrix 2023). A new test checks the inequality behind this on a full
+  enumeration, and another checks that the one-sided max computes the same
+  statistic as `CMRSS::pval_comb_block()`.
+* Permutation p-values and mid-p values now count statistics within a
+  relative tolerance of about 1.5e-8 as tied. Rank scores make many
+  re-randomizations tie exactly, and floating-point summation separated such
+  ties in their last bits, so whether a tied re-randomization counted as at
+  least as extreme depended on rounding. Two exactness tests had matched that
+  rounding: their designs (blocks of 4 with 2 treated, one block of 4
+  clusters with 2 treated) give the same quadratic form at every assignment,
+  so the exact p-value is 1. Those tests now use larger designs.
+* A new vignette, `vignette("harm")`, looks for a few people harmed by a
+  program, compares the one-sided test with the difference in means in a
+  simulation, and uses `CMRSS` (now in Suggests) to ask how many were harmed
+  and by how much.
 # riposte 0.0.0.9005
 
 * Polynomial rank scores as representations: `riposte_poly_scores(y, zeta)`

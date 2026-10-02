@@ -1,6 +1,6 @@
 Package: riposte
 Title: Combined Randomization-Based Tests Across Outcome Representations
-Version: 0.0.0.9005
+Version: 0.0.0.9006
 Authors@R: c(
     person(given = "Jake",
            family = "Bowers",
@@ -33,15 +33,18 @@ Imports:
     MASS,
     stats
 Suggests:
+    CMRSS,
     coin,
     fastperm,
+    highs,
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
     covr,
     pkgdown
 Remotes:
-    bowers-illinois-edu/fastperm
+    bowers-illinois-edu/fastperm,
+    bowers-illinois-edu/CMRSS
 Config/testthat/edition: 3
 Config/Needs/website: pkgdown
 VignetteBuilder: knitr

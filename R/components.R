@@ -20,15 +20,19 @@
 #' @param cluster_agg how to aggregate the outcome within a cluster; the cluster
 #'   mean by default.
 #' @param seed optional integer seed (L'Ecuyer-CMRG) for reproducibility.
+#' @param alternative `"two.sided"` (default), `"greater"`, or `"less"`: the
+#'   direction of each representation's mid-p value; see [riposte_test()].
 #' @param ... reserved.
-#' @return an object of class `riposte_components` with the representations' two
-#'   sided mid-p permutation p-values, the closed-form covariance `Sigma`, its
+#' @return an object of class `riposte_components` with the representations'
+#'   mid-p permutation p-values in the requested direction, the closed-form covariance `Sigma`, its
 #'   `condition` number, the kept/dropped representations, and the score matrix.
 #' @export
 riposte_components <- function(formula, data, blocks = NULL, clusters = NULL,
                               representations = riposte_reps_default(),
                               nresample = 1999L, cluster_agg = mean,
-                              seed = NULL, ...) {
+                              seed = NULL,
+                              alternative = c("two.sided", "greater", "less"), ...) {
+  alternative <- match.arg(alternative)
   nresample <- riposte_check_nresample(nresample)
   if (!is.null(seed)) { RNGkind("L'Ecuyer-CMRG"); set.seed(seed) }
   des <- riposte_parse_design(formula, data, blocks)
@@ -46,7 +50,7 @@ riposte_components <- function(formula, data, blocks = NULL, clusters = NULL,
   moments <- riposte_sw_moments(sm$scores, des$z, des$block)
   riposte_assert_testable(moments$Sigma)
   Tmat <- riposte_perm_stats(sm$scores, des$z, des$block, nresample)$stats
-  comp_p <- riposte_midp_matrix_first(Tmat)
+  comp_p <- riposte_midp_matrix_first(Tmat, alternative)
   scr <- riposte_screen(moments$Sigma)
 
   structure(list(
@@ -61,13 +65,14 @@ riposte_components <- function(formula, data, blocks = NULL, clusters = NULL,
     n_clusters = n_clusters,
     clustered = !is.null(clusters),
     nblocks = nlevels(des$block),
-    nresample = nresample
+    nresample = nresample,
+    alternative = alternative
   ), class = "riposte_components")
 }
 
 ## observed-row mid-p p-value of each representation, from the shared draws
-riposte_midp_matrix_first <- function(Tmat) {
-  P <- apply(Tmat, 2, riposte_midp)
+riposte_midp_matrix_first <- function(Tmat, alternative = "two.sided") {
+  P <- apply(Tmat, 2, riposte_midp, alternative = alternative)
   stats::setNames(P[1, ], colnames(Tmat))
 }
 
@@ -84,7 +89,10 @@ print.riposte_components <- function(x, ...) {
               x$condition))
   if (length(x$dropped))
     cat("  dropped (constant within blocks): ", paste(x$dropped, collapse = ", "), "\n")
-  cat("  representation two-sided mid-p p-values:\n")
+  alt <- if (is.null(x$alternative)) "two.sided" else x$alternative
+  cat(sprintf("  representation %s mid-p p-values:\n",
+              if (alt == "two.sided") "two-sided" else
+                sprintf("one-sided (%s)", alt)))
   pv <- x$component_p
   for (nm in names(pv)) cat(sprintf("    %-16s %.4f\n", nm, pv[[nm]]))
   invisible(x)

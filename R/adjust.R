@@ -125,7 +125,8 @@ riposte_residual_perm_stats <- function(y, X, block, draws, learner,
 #'
 #' @keywords internal
 #' @noRd
-riposte_adjusted_combination <- function(Tmat, statistic, screen_control) {
+riposte_adjusted_combination <- function(Tmat, statistic, screen_control,
+                                         alternative = "two.sided") {
   ## POOLED moments (observed + draws). mu and Sigma are symmetric functions of
   ## the full set of statistics, so the combined statistic is permutation-
   ## equivariant and the test stays EXACT under refit-per-permutation (see the
@@ -147,8 +148,8 @@ riposte_adjusted_combination <- function(Tmat, statistic, screen_control) {
       Sig <- if (statistic == "screen" && scr$method == "shrink") scr$Sigma else Sigma
       riposte_quadratic_from_T(Tmat, mu, Sig)
     },
-    cauchy = riposte_cauchy_from_T(Tmat),
-    max    = riposte_max_from_T(Tmat, mu, sqrt(diag(Sigma)))
+    cauchy = riposte_cauchy_from_T(Tmat, alternative),
+    max    = riposte_max_from_T(Tmat, mu, sqrt(diag(Sigma)), alternative)
   )
   list(result = res, chosen = chosen, screen = if (statistic == "screen") scr else NULL,
        condition = scr$condition)

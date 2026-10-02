@@ -23,7 +23,18 @@
 #'   blocks, and the effective sample size is the number of clusters. Treatment
 #'   must be constant within a cluster and clusters must nest within blocks.
 #' @param statistic which combination to use: `"screen"` (default), `"quadratic"`,
-#'   `"cauchy"`, or `"max"`.
+#'   `"cauchy"`, or `"max"`. With a one-sided `alternative`, only `"max"` (the
+#'   default then) and `"cauchy"` are available.
+#' @param alternative `"two.sided"` (default) counts evidence in either
+#'   direction. `"greater"` counts only treated-score sums above their
+#'   re-randomization mean, and `"less"` only sums below it. For scores that rise
+#'   with the outcome --- the raw outcome, the rank, and both tails of
+#'   [riposte_poly_reps()] --- `"less"` asks whether treated outcomes are lower,
+#'   which is how to look for harm. The distance representations do not rise
+#'   with the outcome, so a one-sided test of them asks instead whether treated
+#'   units sit closer to (`"less"`) or farther from (`"greater"`) the rest of
+#'   their block. Every alternative tests the same sharp null hypothesis of no
+#'   effect; see Details.
 #' @param representations a named list of representation functions;
 #'   [riposte_reps_default()] by default. Supply your own to combine a different
 #'   set.
@@ -88,6 +99,19 @@
 #' yield an exactly standard Cauchy statistic: the analytic upper tail is an
 #' approximation, not a finite-sample level guarantee.
 #'
+#' A one-sided test is still a test of the sharp null of no effect, and it holds
+#' its level under that null like the two-sided test. With `"less"`, the
+#' default engine, no covariance adjustment, representations that depend on the
+#' outcome only through its within-block ranks, and no tied outcomes, it also
+#' holds its level under the weaker hypothesis that the treatment lowered no
+#' unit's outcome, though it may have raised some (Caughey, Dafoe, Li, and
+#' Miratrix 2023, "Randomisation inference beyond the sharp null", JRSS-B 85:
+#' 1471-1491). The ranks in each block are the same numbers whatever the
+#' treatment did, so the re-randomization distribution does not change, and
+#' raising treated outcomes can only raise the observed treated-score sums, so
+#' the p-value can only grow. The same holds for `"greater"` with "raised" and
+#' "lowered" exchanged.
+#'
 #' The asymptotic Cauchy calculation retains both tails on the log scale to
 #' avoid artificial zeros and ones. An exactly zero component statistic gives
 #' an individual p-value of one and a Cauchy term of negative infinity; the
@@ -104,9 +128,27 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
                         screen = riposte_screen_control(),
                         adjust = NULL, learner = NULL, adjust_refit = TRUE,
                         cluster_agg = mean, seed = NULL,
-                        engine = c("permute", "saddlepoint", "asymptotic"), ...) {
+                        engine = c("permute", "saddlepoint", "asymptotic"),
+                        alternative = c("two.sided", "greater", "less"), ...) {
+  statistic_given <- !missing(statistic)
   statistic <- match.arg(statistic)
   engine <- match.arg(engine)
+  alternative <- match.arg(alternative)
+
+  ## the quadratic squares every departure from the null mean, and the screen
+  ## chooses between it and the Cauchy, so neither has a one-sided form; the max
+  ## is the one-sided default because it uses the joint re-randomization
+  ## distribution of the sums, which handles strongly correlated scores
+  if (alternative != "two.sided") {
+    if (!statistic_given) statistic <- "max"
+    if (engine != "permute" && statistic == "max")
+      stop("with engine = \"", engine, "\", a one-sided test needs statistic = ",
+           "\"cauchy\"; the max, the one-sided default, needs engine = \"permute\".",
+           call. = FALSE)
+    if (statistic %in% c("quadratic", "screen"))
+      stop("a one-sided alternative needs statistic = \"max\" or \"cauchy\"; ",
+           "the quadratic and the screen have no one-sided form.", call. = FALSE)
+  }
   if (engine == "asymptotic") {
     if (!statistic %in% c("quadratic", "cauchy"))
       stop("engine = \"asymptotic\" requires statistic = \"quadratic\" or ",
@@ -161,12 +203,15 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
     riposte_block_draws(des$z, des$block, nresample) else NULL
 
   out <- if (is.null(adjust))
-    riposte_test_unadjusted(des, representations, draws, statistic, screen, engine)
+    riposte_test_unadjusted(des, representations, draws, statistic, screen, engine,
+                            alternative)
   else
-    riposte_test_adjusted(des, X, representations, draws, statistic, screen, spec)
+    riposte_test_adjusted(des, X, representations, draws, statistic, screen, spec,
+                          alternative)
 
   structure(c(out, list(
     requested = statistic,
+    alternative = alternative,
     engine = engine,
     n = length(des$y),
     n_units = n_units,
@@ -181,14 +226,14 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
 
 ## unadjusted path: closed-form moments + the shared draws
 riposte_test_unadjusted <- function(des, representations, draws, statistic, screen,
-                                    engine = "permute") {
+                                    engine = "permute", alternative = "two.sided") {
   sm <- riposte_score_matrix(des$y, des$block, representations)
   if (ncol(sm$scores) == 0L)
     stop("every representation is constant within blocks; nothing to test.",
          call. = FALSE)
 
   if (engine == "asymptotic")
-    return(riposte_test_asymptotic(des, sm, statistic))
+    return(riposte_test_asymptotic(des, sm, statistic, alternative))
 
   ## draws-free saddlepoint combinations. The Cauchy needs no joint covariance; the
   ## quadratic (and the screen's choice between it and the Cauchy) need the
@@ -210,12 +255,13 @@ riposte_test_unadjusted <- function(des, representations, draws, statistic, scre
     res <- if (chosen == "quadratic")
       riposte_quadratic_spa(sm$scores, des$z, des$block, metric = metric)
     else
-      riposte_cauchy_spa(sm$scores, des$z, des$block)
+      riposte_cauchy_spa(sm$scores, des$z, des$block, alternative)
     return(list(
       statistic = res$statistic, p.value = res$p.value, combination = chosen,
       condition = if (is.null(scr)) NA_real_ else scr$condition,
       screen = if (statistic == "screen") scr else NULL,
       df = if (chosen == "quadratic") res$rank else NA_integer_,
+      component_p = res$component_p,
       kept = sm$kept, dropped = sm$dropped))
   }
 
@@ -233,8 +279,10 @@ riposte_test_unadjusted <- function(des, representations, draws, statistic, scre
         list(mu = moments$mu, Sigma = scr$Sigma) else moments
       riposte_quadratic(sm$scores, des$z, des$block, moments = mom, draws = draws)
     },
-    cauchy = riposte_cauchy(sm$scores, des$z, des$block, draws = draws),
-    max    = riposte_max(sm$scores, des$z, des$block, moments = moments, draws = draws)
+    cauchy = riposte_cauchy(sm$scores, des$z, des$block, draws = draws,
+                            alternative = alternative),
+    max    = riposte_max(sm$scores, des$z, des$block, moments = moments, draws = draws,
+                         alternative = alternative)
   )
   list(statistic = res$statistic, p.value = res$p.value, combination = chosen,
        condition = scr$condition, screen = if (statistic == "screen") scr else NULL,
@@ -244,10 +292,10 @@ riposte_test_unadjusted <- function(des, representations, draws, statistic, scre
 ## adjusted path: refit-per-permutation residuals + Monte-Carlo moments. X is the
 ## (possibly cluster-collapsed) covariate matrix built by the caller.
 riposte_test_adjusted <- function(des, X, representations, draws, statistic,
-                                  screen, spec) {
+                                  screen, spec, alternative = "two.sided") {
   rp <- riposte_residual_perm_stats(des$y, X, des$block, draws, spec$learner,
                                     representations, spec$refit)
-  comb <- riposte_adjusted_combination(rp$stats, statistic, screen)
+  comb <- riposte_adjusted_combination(rp$stats, statistic, screen, alternative)
   list(statistic = comb$result$statistic, p.value = comb$result$p.value,
        combination = comb$chosen, condition = comb$condition,
        screen = comb$screen, df = comb$result$df, kept = rp$kept,

@@ -69,19 +69,25 @@ test_that("the cluster test reports clusters and the effective n", {
 })
 
 test_that("the cluster test is exact under full enumeration of cluster assignments", {
-  ## 1 block, 4 clusters of 2 units, 2 clusters treated -> choose(4,2)=6 assignments
+  ## 1 block, 10 clusters of 2 units, 5 clusters treated -> choose(10,5) = 252
+  ## assignments. The six default scores must span fewer dimensions than the
+  ## 9 contrasts among 10 clusters: when they span them all (6 or fewer
+  ## clusters), the quadratic form is the same at every assignment and the
+  ## exact p-value is always 1.
   set.seed(3)
-  clust <- rep(1:4, each = 2)
-  y <- rnorm(8)
-  col <- riposte:::riposte_collapse_clusters(y, rep(c(1, 1, 0, 0), each = 2),
-                                             factor(rep(1, 8)), clust)
+  clust <- rep(1:10, each = 2)
+  y <- rnorm(20)
+  col <- riposte:::riposte_collapse_clusters(y, rep(rep(c(1, 0), each = 5), each = 2),
+                                             factor(rep(1, 20)), clust)
   block_c <- col$block
-  G <- enumerate_assignments(block_c)               # cluster-level enumeration (6 cols)
+  G <- enumerate_assignments(block_c)               # cluster-level enumeration (252 cols)
   sm <- riposte_score_matrix(col$y, block_c)
   mom <- riposte_sw_moments(sm$scores, G[, 1], block_c)
   Tmat <- crossprod(G, sm$scores); cen <- sweep(Tmat, 2, mom$mu)
   q <- rowSums((cen %*% MASS::ginv(mom$Sigma)) * cen)
-  p_exact <- mean(q >= q[1])
+  expect_gt(diff(range(q)), 1)                       # not the degenerate design
+  ## complements tie exactly; count values within 1e-9 as ties, as riposte does
+  p_exact <- mean(q >= q[1] - 1e-9)
   p_rip <- riposte_quadratic(sm$scores, G[, 1], block_c, moments = mom, draws = G)$p.value
   expect_equal(p_rip, p_exact)
 })

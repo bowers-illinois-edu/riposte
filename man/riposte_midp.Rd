@@ -2,29 +2,34 @@
 % Please edit documentation in R/pvalues.R
 \name{riposte_midp}
 \alias{riposte_midp}
-\title{Two-sided mid-p permutation p-values}
+\title{Mid-p permutation p-values}
 \usage{
-riposte_midp(v)
+riposte_midp(v, alternative = c("two.sided", "greater", "less"))
 }
 \arguments{
 \item{v}{numeric vector of a statistic across assignments (observed plus
 draws). Two-sidedness is by \code{abs(v)}.}
+
+\item{alternative}{\code{"two.sided"} (default), \code{"greater"}, or \code{"less"}.}
 }
 \value{
 numeric vector of mid-p values, the same length as \code{v}, all in (0, 1).
+Without ties, the \code{"greater"} and \code{"less"} values add to one.
 }
 \description{
 Given a statistic evaluated across the observed assignment and its
 re-randomizations (a single vector \code{v}, length 1 + number of draws), returns
-the two-sided mid-p permutation p-value of each entry relative to the whole
-set. The most extreme value (largest \verb{|v|}) gets \code{0.5 / n}; the least extreme
+the mid-p permutation p-value of each entry relative to the whole set:
+two-sided by default, or one-sided with \code{alternative = "greater"} (large
+values are extreme) or \code{"less"} (small values are extreme). The most extreme value (largest \verb{|v|}) gets \code{0.5 / n}; the least extreme
 gets \code{(n - 0.5) / n}. Every value is strictly inside (0, 1), so the Cauchy
 transform never reaches a pole.
 }
 \details{
 The mid-p value is the ordinary upper-tail count minus half the mass at the
 observed value: \verb{(# strictly more extreme) + 0.5 * (# tied, including self)},
-divided by \code{n}. With \code{ties.method = "average"} the rank-based form below gives
-exactly that. The linear statistics riposte combines are continuous, so ties
-are negligible in practice.
+divided by \code{n}. Values within about \code{1.5e-8} of each other, relative to
+their size when it exceeds one, count as tied, because rank scores make many
+re-randomizations tie exactly, and floating-point summation in a different
+order can separate such ties in their last bits.
 }

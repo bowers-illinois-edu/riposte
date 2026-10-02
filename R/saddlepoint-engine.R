@@ -27,11 +27,13 @@
 #' @param scores within-block-centred score matrix (units x representations).
 #' @param z 0/1 treatment vector.
 #' @param block block factor.
+#' @param alternative `"two.sided"`, `"greater"`, or `"less"`, passed to
+#'   `fastperm::fastperm_spa_linear()`.
 #' @return a list with the ACAT `statistic`, its analytic `p.value`, and
-#'   `component_p` (each representation's two-sided saddlepoint p-value).
+#'   `component_p` (each representation's saddlepoint p-value).
 #' @keywords internal
 #' @noRd
-riposte_cauchy_spa <- function(scores, z, block) {
+riposte_cauchy_spa <- function(scores, z, block, alternative = "two.sided") {
   ## fastperm is an OPTIONAL dependency (Suggests + Remotes: it lives on GitHub,
   ## not CRAN); guard so riposte works without it and only this engine needs it
   if (!requireNamespace("fastperm", quietly = TRUE))
@@ -39,11 +41,12 @@ riposte_cauchy_spa <- function(scores, z, block) {
          "  remotes::install_github(\"bowers-illinois-edu/fastperm\")", call. = FALSE)
   scores <- as.matrix(scores)
 
-  ## two-sided saddlepoint permutation p-value of each representation's linear
-  ## statistic, computed from the exact permutation CGF with no draws
+  ## saddlepoint permutation p-value of each representation's linear statistic,
+  ## in the requested direction, computed from the exact permutation CGF with no
+  ## draws
   p <- vapply(seq_len(ncol(scores)), function(j)
     fastperm::fastperm_spa_linear(scores[, j], z, block,
-                                  alternative = "two.sided")$p.value, numeric(1))
+                                  alternative = alternative)$p.value, numeric(1))
   names(p) <- colnames(scores)
 
   ## Liu-Xie analytic Cauchy combination: the ACAT statistic is the mean of the

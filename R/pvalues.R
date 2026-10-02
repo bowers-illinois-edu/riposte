@@ -13,31 +13,55 @@
 ##     combining p-values that did reach 0 or 1 (e.g. p-values from outside
 ##     riposte). With mid-p inputs it almost never triggers; kept for robustness.
 
-#' Two-sided mid-p permutation p-values
+#' Mid-p permutation p-values
 #'
 #' Given a statistic evaluated across the observed assignment and its
 #' re-randomizations (a single vector `v`, length 1 + number of draws), returns
-#' the two-sided mid-p permutation p-value of each entry relative to the whole
-#' set. The most extreme value (largest `|v|`) gets `0.5 / n`; the least extreme
+#' the mid-p permutation p-value of each entry relative to the whole set:
+#' two-sided by default, or one-sided with `alternative = "greater"` (large
+#' values are extreme) or `"less"` (small values are extreme). The most extreme value (largest `|v|`) gets `0.5 / n`; the least extreme
 #' gets `(n - 0.5) / n`. Every value is strictly inside (0, 1), so the Cauchy
 #' transform never reaches a pole.
 #'
 #' The mid-p value is the ordinary upper-tail count minus half the mass at the
 #' observed value: `(# strictly more extreme) + 0.5 * (# tied, including self)`,
-#' divided by `n`. With `ties.method = "average"` the rank-based form below gives
-#' exactly that. The linear statistics riposte combines are continuous, so ties
-#' are negligible in practice.
+#' divided by `n`. Values within about `1.5e-8` of each other, relative to
+#' their size when it exceeds one, count as tied, because rank scores make many
+#' re-randomizations tie exactly, and floating-point summation in a different
+#' order can separate such ties in their last bits.
 #'
 #' @param v numeric vector of a statistic across assignments (observed plus
 #'   draws). Two-sidedness is by `abs(v)`.
+#' @param alternative `"two.sided"` (default), `"greater"`, or `"less"`.
 #' @return numeric vector of mid-p values, the same length as `v`, all in (0, 1).
+#'   Without ties, the `"greater"` and `"less"` values add to one.
 #' @export
-riposte_midp <- function(v) {
-  a <- abs(v)
+riposte_midp <- function(v, alternative = c("two.sided", "greater", "less")) {
+  alternative <- match.arg(alternative)
+  a <- switch(alternative, two.sided = abs(v), greater = v, less = -v)
   n <- length(a)
-  ## rank by |v| ascending; the largest |v| has the highest rank, hence smallest
-  ## p. ties.method = "average" splits tied mass evenly, giving the mid-p.
-  (n - rank(a, ties.method = "average") + 0.5) / n
+  ## mid-p: (# strictly more extreme + half the # tied, self included) / n, with
+  ## values within floating-point tolerance of a_i treated as tied with it
+  tol <- riposte_tie_tol(a)
+  sorted <- sort(a)
+  more <- n - findInterval(a + tol, sorted)                      # a_j > a_i + tol
+  at_least <- n - findInterval(a - tol, sorted, left.open = TRUE) # a_j >= a_i - tol
+  (more + 0.5 * (at_least - more)) / n
+}
+
+## Tolerance within which another statistic counts as tied with x. Rank scores
+## make many re-randomizations tie exactly in exact arithmetic (an assignment and
+## its within-block complement give treated sums T and -T, for instance), and
+## floating-point arithmetic separates such ties in their last bits; without a
+## tolerance that noise decides whether a tied re-randomization counts as at
+## least as extreme. The tolerance is sqrt(machine epsilon), about 1.5e-8,
+## relative to |x| (absolute below 1), as all.equal() uses: far above rounding
+## noise, far below any difference moving a unit between groups can make. The
+## tolerance belongs at the comparison rather than in the sums, because the
+## quadratic form, the standardized max, and the Cauchy average all round after
+## the sums are formed.
+riposte_tie_tol <- function(x) {
+  sqrt(.Machine$double.eps) * pmax(1, abs(x))
 }
 
 #' Pole-aware Cauchy (ACAT) transform of p-values

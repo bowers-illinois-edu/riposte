@@ -30,6 +30,10 @@ print.riposte_test <- function(x, ...) {
     cat(sprintf("  screen (%s); condition number %.1f\n", how, x$condition))
   }
   cat(sprintf("  combination: %s\n", combo))
+  if (!is.null(x$alternative) && x$alternative != "two.sided")
+    cat(sprintf("  alternative: %s (treated-score sums %s their re-randomization mean)\n",
+                x$alternative,
+                if (x$alternative == "less") "below" else "above"))
   if (isTRUE(x$adjusted))
     cat(sprintf("  covariance-adjusted (%s)\n",
                 if (isTRUE(x$refit)) "refit per permutation, exact"

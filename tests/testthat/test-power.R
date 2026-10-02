@@ -36,7 +36,8 @@ power_pvalues <- function(y, z, block, nres) {
   mom <- riposte_sw_moments(sm$scores, z, block)
   G <- riposte_block_draws(z, block, nres)
   Tmat <- crossprod(G, sm$scores)
-  marg <- apply(Tmat, 2, function(col) mean(abs(col) >= abs(col[1])))
+  ## rank sums tie exactly across draws; count values within 1e-9 as ties
+  marg <- apply(Tmat, 2, function(col) mean(abs(col) >= abs(col[1]) - 1e-9))
   c(quadratic = riposte_quadratic(sm$scores, z, block, moments = mom, draws = G)$p.value,
     cauchy    = riposte_cauchy(sm$scores, z, block, draws = G)$p.value,
     diffmeans = marg[["raw"]],

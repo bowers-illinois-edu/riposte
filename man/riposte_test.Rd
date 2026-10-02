@@ -19,6 +19,7 @@ riposte_test(
   cluster_agg = mean,
   seed = NULL,
   engine = c("permute", "saddlepoint", "asymptotic"),
+  alternative = c("two.sided", "greater", "less"),
   ...
 )
 }
@@ -40,7 +41,8 @@ blocks, and the effective sample size is the number of clusters. Treatment
 must be constant within a cluster and clusters must nest within blocks.}
 
 \item{statistic}{which combination to use: \code{"screen"} (default), \code{"quadratic"},
-\code{"cauchy"}, or \code{"max"}.}
+\code{"cauchy"}, or \code{"max"}. With a one-sided \code{alternative}, only \code{"max"} (the
+default then) and \code{"cauchy"} are available.}
 
 \item{representations}{a named list of representation functions;
 \code{\link[=riposte_reps_default]{riposte_reps_default()}} by default. Supply your own to combine a different
@@ -93,6 +95,17 @@ rank-deficient metric). It is an approximation, supports \code{statistic} other 
 \code{"max"} without \code{adjust}, and requires the \code{fastperm} package (the quadratic
 needs a \code{fastperm} with \code{fastperm_spa_quadratic}).}
 
+\item{alternative}{\code{"two.sided"} (default) counts evidence in either
+direction. \code{"greater"} counts only treated-score sums above their
+re-randomization mean, and \code{"less"} only sums below it. For scores that rise
+with the outcome --- the raw outcome, the rank, and both tails of
+\code{\link[=riposte_poly_reps]{riposte_poly_reps()}} --- \code{"less"} asks whether treated outcomes are lower,
+which is how to look for harm. The distance representations do not rise
+with the outcome, so a one-sided test of them asks instead whether treated
+units sit closer to (\code{"less"}) or farther from (\code{"greater"}) the rest of
+their block. Every alternative tests the same sharp null hypothesis of no
+effect; see Details.}
+
 \item{...}{reserved.}
 }
 \value{
@@ -119,6 +132,19 @@ alone does not ensure this when individual scores dominate their variance.
 For the Cauchy combination, dependent component p-values do not in general
 yield an exactly standard Cauchy statistic: the analytic upper tail is an
 approximation, not a finite-sample level guarantee.
+
+A one-sided test is still a test of the sharp null of no effect, and it holds
+its level under that null like the two-sided test. With \code{"less"}, the
+default engine, no covariance adjustment, representations that depend on the
+outcome only through its within-block ranks, and no tied outcomes, it also
+holds its level under the weaker hypothesis that the treatment lowered no
+unit's outcome, though it may have raised some (Caughey, Dafoe, Li, and
+Miratrix 2023, "Randomisation inference beyond the sharp null", JRSS-B 85:
+1471-1491). The ranks in each block are the same numbers whatever the
+treatment did, so the re-randomization distribution does not change, and
+raising treated outcomes can only raise the observed treated-score sums, so
+the p-value can only grow. The same holds for \code{"greater"} with "raised" and
+"lowered" exchanged.
 
 The asymptotic Cauchy calculation retains both tails on the log scale to
 avoid artificial zeros and ones. An exactly zero component statistic gives

@@ -4,13 +4,16 @@
 \alias{riposte_poly_scores}
 \title{Polynomial rank scores}
 \usage{
-riposte_poly_scores(y, zeta)
+riposte_poly_scores(y, zeta, tail = c("upper", "lower"))
 }
 \arguments{
 \item{y}{numeric vector (a single block's outcomes).}
 
 \item{zeta}{the tuning value, a single number \verb{>= 1}. It need not be a whole
-number. \code{zeta = 1} gives the constant 1, which carries no information.}
+number. \code{zeta = 1} gives a constant, which carries no information.}
+
+\item{tail}{\code{"upper"} (default) weights the top of the block; \code{"lower"}
+weights the bottom.}
 }
 \value{
 numeric vector of scores the same length as \code{y}.
@@ -27,6 +30,21 @@ distance from the top of the block is about \code{n / (zeta + 1)} units.
 \details{
 Unlike \code{\link[=riposte_stephenson_scores]{riposte_stephenson_scores()}}, the score lies in \verb{[0, 1)} whatever the
 block size, so blocks of different sizes enter on the same scale.
+
+With \code{tail = "lower"} the score weights the bottom of the block instead: the
+unit at ascending rank \code{k} gets \code{-((n + 1 - k) / (n + 1))^(zeta - 1)}, which
+lies in \verb{(-1, 0]}. The minus sign makes the score rise with the outcome, as
+the upper-tail score does, so that with \code{alternative = "less"} in
+[riposte_test()] both tails ask whether treated outcomes are lower. Without
+ties, the lower-tail score is \code{-riposte_poly_scores(-y, zeta)}.
+
+[0, 1)` whatever the
+block size, so blocks of different sizes enter on the same scale.
+
+With \code{tail = "lower"} the score weights the bottom of the block instead: the
+unit at ascending rank \code{k} gets \code{-((n + 1 - k) / (n + 1))^(zeta - 1)}, which
+lies in `(-1, 0]: R:0,\%201)\%60\%20whatever\%20the\%0Ablock\%20size,\%20so\%20blocks\%20of\%20different\%20sizes\%20enter\%20on\%20the\%20same\%20scale.\%0A\%0AWith\%20\%60tail\%20=\%20\%22lower\%22\%60\%20the\%20score\%20weights\%20the\%20bottom\%20of\%20the\%20block\%20instead:\%20the\%0Aunit\%20at\%20ascending\%20rank\%20\%60k\%60\%20gets\%20\%60-((n\%20+\%201\%20-\%20k)\%20/\%20(n\%20+\%201))\%5E(zeta\%20-\%201)\%60,\%20which\%0Alies\%20in\%20\%60(-1,\%200
+[riposte_test()]: R:riposte_test()
 }
 \seealso{
 \code{\link[=riposte_poly_reps]{riposte_poly_reps()}}, \code{\link[=riposte_stephenson_scores]{riposte_stephenson_scores()}}.

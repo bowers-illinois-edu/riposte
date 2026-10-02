@@ -58,5 +58,7 @@ riposte_perm_stats <- function(scores, z, block, nresample = 1999L, draws = NULL
 #' @keywords internal
 #' @noRd
 riposte_perm_pvalue <- function(stat) {
-  mean(stat >= stat[1])
+  ## a draw tied with the observed value up to floating-point error counts as at
+  ## least as extreme; see riposte_tie_tol()
+  mean(stat >= stat[1] - riposte_tie_tol(stat[1]))
 }

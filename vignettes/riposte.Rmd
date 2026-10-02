@@ -310,6 +310,11 @@ riposte_test(outcome ~ treated | block, data = dat,
              nresample = 999, seed = 1)
 ```
 
+To look for a few people *harmed* by a program, use
+`riposte_poly_reps(tail = "lower")`, which weights the bottom of each block,
+with `riposte_test(alternative = "less")`, which counts only evidence that
+treated outcomes are lower. `vignette("harm")` works through that case.
+
 These tests, like every test in `riposte`, test the sharp null hypothesis that
 the program changed no one's outcome. Kim, Su, Bowers, and Li use the same
 scores to test a different hypothesis, about how many units had an effect

@@ -63,3 +63,23 @@ test_that("acat_term stays finite at the poles via the small-/large-p limits", {
   expect_gt(riposte_acat_term(1e-8), 0)
   expect_lt(riposte_acat_term(1 - 1e-8), 0)
 })
+
+test_that("values equal up to floating-point error count as ties", {
+  ## Rank scores give many re-randomizations whose treated-score sums are
+  ## exactly equal in exact arithmetic, but floating-point sums of the same
+  ## numbers in a different order can differ in the last bits. 0.1 + 0.2 and 0.3
+  ## are the textbook pair. A tied re-randomization must count as at least as
+  ## extreme as the observed one; if last-bit noise put it just below, the
+  ## p-value would be too small and the test anti-conservative.
+  tied <- 0.1 + 0.2                               # 0.30000000000000004
+  stat <- c(tied, 0.3, 0.3, 0.1)
+  expect_equal(riposte:::riposte_perm_pvalue(stat), 3 / 4)
+
+  ## mid-p: the three tied values share one value, each with half the tied mass
+  p <- riposte_midp(c(0.3, tied, 0.3, 1), "greater")
+  expect_equal(p[1], p[2])
+  expect_equal(p[1], (1 + 0.5 * 3) / 4)
+  ## values farther apart than floating-point error are not ties
+  expect_lt(riposte_midp(c(0.3, 0.3 + 1e-6), "greater")[2],
+            riposte_midp(c(0.3, 0.3 + 1e-6), "greater")[1])
+})

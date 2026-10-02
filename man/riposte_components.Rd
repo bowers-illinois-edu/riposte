@@ -13,6 +13,7 @@ riposte_components(
   nresample = 1999L,
   cluster_agg = mean,
   seed = NULL,
+  alternative = c("two.sided", "greater", "less"),
   ...
 )
 }
@@ -37,11 +38,14 @@ mean by default.}
 
 \item{seed}{optional integer seed (L'Ecuyer-CMRG) for reproducibility.}
 
+\item{alternative}{\code{"two.sided"} (default), \code{"greater"}, or \code{"less"}: the
+direction of each representation's mid-p value; see \code{\link[=riposte_test]{riposte_test()}}.}
+
 \item{...}{reserved.}
 }
 \value{
-an object of class \code{riposte_components} with the representations' two
-sided mid-p permutation p-values, the closed-form covariance \code{Sigma}, its
+an object of class \code{riposte_components} with the representations'
+mid-p permutation p-values in the requested direction, the closed-form covariance \code{Sigma}, its
 \code{condition} number, the kept/dropped representations, and the score matrix.
 }
 \description{

@@ -4,13 +4,17 @@
 \alias{riposte_poly_reps}
 \title{Polynomial rank-score representations at several tuning values}
 \usage{
-riposte_poly_reps(zeta = c(2, 7, 12, 17, 22))
+riposte_poly_reps(zeta = c(2, 7, 12, 17, 22), tail = c("upper", "lower"))
 }
 \arguments{
 \item{zeta}{vector of tuning values, each \verb{>= 1}.}
+
+\item{tail}{\code{"upper"} (default) or \code{"lower"}, passed to
+\code{\link[=riposte_poly_scores]{riposte_poly_scores()}}.}
 }
 \value{
 a named list of representation functions, named \code{poly2}, \code{poly7}, ...
+for the upper tail and \code{polylow2}, \code{polylow7}, ... for the lower tail.
 }
 \description{
 Returns a named list of representation functions, one per value of \code{zeta},
@@ -31,6 +35,10 @@ values whose \verb{2 zeta - 1} grow by a constant factor (for example \verb{zeta
 \code{zeta = 2} is the rank rescaled. When it is added to
 \code{\link[=riposte_reps_default]{riposte_reps_default()}}, which already holds the rank, leave it out:
 \code{c(riposte_reps_default(), riposte_poly_reps(c(7, 12, 17, 22)))}.
+
+With \code{tail = "lower"} the scores weight the bottom of each block, for a
+treatment that lowers the outcomes of a few units; see
+\code{\link[=riposte_poly_scores]{riposte_poly_scores()}} and \code{vignette("harm")}.
 }
 \seealso{
 \code{\link[=riposte_poly_scores]{riposte_poly_scores()}}, \code{\link[=riposte_stephenson_reps]{riposte_stephenson_reps()}}.
