@@ -1,6 +1,6 @@
 Package: riposte
 Title: Combined Randomization-Based Tests Across Outcome Representations
-Version: 0.0.0.9004
+Version: 0.0.0.9005
 Authors@R: c(
     person(given = "Jake",
            family = "Bowers",

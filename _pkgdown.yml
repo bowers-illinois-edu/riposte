@@ -22,6 +22,8 @@ reference:
   - riposte_tanh
   - riposte_stephenson_scores
   - riposte_stephenson_reps
+  - riposte_poly_scores
+  - riposte_poly_reps
 - title: Combination screen
   desc: Choosing or blending the quadratic and the Cauchy from the conditioning of the covariance.
   contents:

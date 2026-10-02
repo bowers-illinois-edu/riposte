@@ -16,6 +16,9 @@
 ##     it; a difference of means is blind.
 ##   - Sparse upper-tail effect (a few units helped a lot): a combined test beats
 ##     a single rank (Wilcoxon) test.
+##   - Covariates of pure noise: covariance adjustment, refit inside every
+##     re-randomization, rejects about as often as the unadjusted test. The main
+##     vignette quotes the two rates this test produces at its seed, 0.85 and 0.83.
 ##
 ## These are Monte-Carlo rejection rates, so they are slow and skipped on CRAN.
 ## How the thresholds are set: each is the calibrated rejection rate minus a
@@ -116,3 +119,34 @@ test_that("a combined test beats a single rank test on a sparse upper-tail effec
   ## gap ~0.51)
   expect_gt(rr[["quadratic"]] - rr[["wilcox"]], 0.15)
 })
+
+test_that("adjusting for covariates of pure noise loses little power", {
+  skip_on_cran()
+  ## The main vignette's design (12 blocks of 30, half treated, treatment widens
+  ## the spread) with a smaller effect, sd 1 -> 1.35, so that power is below 1
+  ## and a loss would show. x1 and x2 are unrelated to the outcome, so the
+  ## controls-only ridge fit has nothing to remove; any power it loses comes from
+  ## fitting noise. Both tests see the same data in every replication, so the
+  ## difference in rejection rates is a paired comparison.
+  RNGkind("L'Ecuyer-CMRG"); set.seed(20261005)
+  B <- 12L; nb <- 30L; nsims <- 100L
+  block <- factor(rep(seq_len(B), each = nb))
+  rej <- t(replicate(nsims, {
+    z <- assign_within_block(block)
+    y <- ifelse(z == 1, rnorm(B * nb, sd = 1.35), rnorm(B * nb))
+    d <- data.frame(Y = y, trt = z, blk = block,
+                    x1 = rnorm(B * nb), x2 = rnorm(B * nb))
+    c(unadj = riposte_test(Y ~ trt | blk, d, nresample = 99)$p.value <= 0.05,
+      adj   = riposte_test(Y ~ trt | blk, d, adjust = ~ x1 + x2,
+                           nresample = 99)$p.value <= 0.05)
+  }))
+  rr <- colMeans(rej)
+  ## Calibrated rates (2026-10-02, n = 400, set.seed(1)): unadjusted 0.845,
+  ## adjusted 0.835. At this seed (n = 100): 0.85 and 0.83. Over seeds 2, 3, 4
+  ## (n = 100 each) the unadjusted rate exceeded the adjusted by 0.03, 0.05, 0.00.
+  ## The tests disagree in about 5 to 8 percent of replications, so the SE of the
+  ## paired difference at n = 100 is about sqrt(0.07 / 100) = 0.026.
+  expect_gt(rr[["adj"]], 0.65)                         # 0.83 - ~5 SE (SE 0.038)
+  expect_lt(rr[["unadj"]] - rr[["adj"]], 0.10)         # 0.02 + ~3 SE of the difference
+})
+
