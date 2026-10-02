@@ -17,9 +17,14 @@ test_that("an exactly zero statistic has asymptotic p-value one", {
 })
 
 test_that("a p-value near one retains its finite Cauchy statistic", {
-  d <- data.frame(Y = c(-1, 1, -1e-20, 1e-20), trt = c(1, 1, 1, 0))
+  ## The -1 and 1 sit in the control group so the treated sum has no
+  ## cancellation. With both in the treated group, the sum depended on BLAS
+  ## summation order: OpenBLAS (Ubuntu CI) adds (-1 + -1e-20) + 1 = 0, where
+  ## reference BLAS adds (-1 + 1) + -1e-20 = -1e-20. A zero sum is the exact
+  ## p = 1 case, whose statistic is -Inf by design, not the case tested here.
+  d <- data.frame(Y = c(-1e-20, 1e-20, 1, -1), trt = c(1, 0, 0, 0))
   ## The mean is zero, the treated sum is -1e-20, and its permutation
-  ## variance is 3 * 1 / (4 * 3) * 2 = 0.5. Compute the small lower
+  ## variance is 1 * 3 / (4 * 3) * 2 = 0.5. Compute the small lower
   ## chi-square tail directly: subtracting the upper tail from 1 loses it.
   lower <- pchisq(1e-40 / 0.5, df = 1)
   expected <- -1 / tan(pi * lower)
