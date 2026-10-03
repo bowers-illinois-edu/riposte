@@ -17,15 +17,14 @@ riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided
   centered <- as.numeric(crossprod(des$z, scores)) - moments$mu
 
   if (statistic == "quadratic") {
-    ## Use the same numerical cutoff as MASS::ginv(), the permutation
-    ## quadratic's inverse. The retained directions determine BOTH the
-    ## statistic and its degrees of freedom; duplicated scores add neither.
-    eig <- eigen(moments$Sigma, symmetric = TRUE)
-    retained <- eig$values > max(eig$values) * sqrt(.Machine$double.eps)
-    coordinates <- as.numeric(crossprod(eig$vectors[, retained, drop = FALSE],
-                                       centered))
-    q <- sum(coordinates^2 / eig$values[retained])
-    df <- sum(retained)
+    ## The same inverse as the permutation quadratic (riposte_std_pinv): the
+    ## correlation scale keeps the retained directions, and so both the
+    ## statistic and its degrees of freedom, free of the units of Y (issue #1).
+    ## Duplicated scores add neither.
+    inv <- riposte_std_pinv(moments$Sigma)
+    standardized_c <- centered / inv$sd
+    q <- drop(crossprod(standardized_c, inv$R_pinv %*% standardized_c))
+    df <- inv$rank
     result <- list(statistic = q,
                    p.value = stats::pchisq(q, df = df, lower.tail = FALSE),
                    df = df)

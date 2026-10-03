@@ -99,3 +99,26 @@ test_that("where ginv() on the raw covariance kept every direction, Q is unchang
   expect_equal(f$statistic, q_old, tolerance = 1e-8)
   expect_equal(f$df, qr(mom$Sigma)$rank)
 })
+
+test_that("a tiny unit for the outcome does not get a varying score dropped as constant", {
+  ## riposte_score_matrix() dropped a representation when the sum of its
+  ## absolute centered scores fell below the absolute number 1e-12. With Y
+  ## recorded in units of 1e-15, the raw score varies but is that small, so it
+  ## was dropped and the test changed. A unit-free check compares each centered
+  ## score with the size of the uncentered score instead.
+  d <- five_point()
+  a <- riposte_test(Y ~ Z, data = d, statistic = "quadratic", seed = 1)
+  b <- riposte_test(Y ~ Z, data = transform(d, Y = Y * 1e-15), statistic = "quadratic", seed = 1)
+  expect_equal(b$kept, a$kept)
+  expect_equal(b$statistic, a$statistic, tolerance = 1e-8)
+  expect_equal(b$p.value, a$p.value)
+})
+
+test_that("a representation constant within every block is still dropped, whatever its size", {
+  set.seed(4)
+  d <- data.frame(Y = rnorm(40), Z = rep(0:1, 20))
+  reps <- c(riposte_reps_default()[c("raw", "rank")],
+            list(big_constant = function(y) rep(1e10 / 3, length(y))))
+  r <- riposte_test(Y ~ Z, data = d, representations = reps, statistic = "quadratic", seed = 1)
+  expect_equal(r$dropped, "big_constant")
+})

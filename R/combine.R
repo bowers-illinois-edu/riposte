@@ -3,7 +3,8 @@
 ## THE POINT. From the representation linear statistics, riposte forms three
 ## combinations, all referred to the randomization distribution:
 ##   quadratic  (T - mu)' Sigma^+ (T - mu) using the FULL permutation covariance
-##              (closed-form mu, Sigma; Moore-Penrose inverse via MASS::ginv).
+##              (closed-form mu, Sigma; Moore-Penrose inverse of the correlation
+##              matrix, riposte_std_pinv()).
 ##              The STATISTIC uses the exact closed-form moments (not estimated
 ##              from the draws, which made the proposal's version anti-conservative
 ##              by O(1/nresample)); its P-VALUE is the share of the randomization
@@ -35,10 +36,15 @@
 ## and supplies Monte-Carlo moments. These three functions are the shared core.
 
 riposte_quadratic_from_T <- function(Tmat, mu, Sigma) {
-  Sigma_inv <- MASS::ginv(Sigma)            # handles the rank deficiency the screen guards against
-  cen <- sweep(Tmat, 2, mu)
-  q <- rowSums((cen %*% Sigma_inv) * cen)
-  list(statistic = unname(q[1]), p.value = riposte_perm_pvalue(q), df = qr(Sigma)$rank)
+  ## invert the correlation matrix of the score sums, not their covariance
+  ## (issue #1): in exact arithmetic Q is the same either way, but the rank sum's
+  ## variance can be 10^7 times the raw sum's, and a cutoff relative to the
+  ## largest eigenvalue of Sigma then drops real directions and makes Q depend
+  ## on the units of Y
+  inv <- riposte_std_pinv(Sigma)
+  cen <- sweep(sweep(Tmat, 2, mu), 2, inv$sd, "/")
+  q <- rowSums((cen %*% inv$R_pinv) * cen)
+  list(statistic = unname(q[1]), p.value = riposte_perm_pvalue(q), df = inv$rank)
 }
 
 riposte_cauchy_from_T <- function(Tmat, alternative = "two.sided") {

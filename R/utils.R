@@ -124,3 +124,33 @@ riposte_as_indicator <- function(x) {
     stop("treatment must have exactly two levels.", call. = FALSE)
   as.numeric(f == levels(f)[2L])
 }
+
+#' Moore-Penrose inverse of a covariance matrix on the correlation scale
+#'
+#' The quadratic Q = c' Sigma^+ c is unchanged, in exact arithmetic, when each
+#' score sum is divided by its standard deviation (c' Sigma^+ c =
+#' (D^-1 c)' R^+ (D^-1 c) for c in the column space of Sigma, with
+#' R = D^-1 Sigma D^-1). In floating point the two differ: the eigenvalues of
+#' Sigma carry the units of the scores and can span ten or more orders of
+#' magnitude, so a cutoff relative to the largest drops real directions, while
+#' the eigenvalues of R sum to the number of scores whatever the units. The
+#' cutoff is MASS::ginv()'s, sqrt(eps) times the largest eigenvalue, and the
+#' rank counts the directions kept, so the degrees of freedom match Q.
+#'
+#' @param Sigma a covariance matrix of score sums.
+#' @return a list with `sd` (the standard deviations, with 1 in place of 0 so
+#'   that a zero-variance sum contributes nothing), `R_pinv` (the Moore-Penrose
+#'   inverse of the correlation matrix), and `rank` (the directions kept).
+#' @keywords internal
+#' @noRd
+riposte_std_pinv <- function(Sigma) {
+  sdv <- sqrt(pmax(diag(Sigma), 0))
+  sdv[sdv == 0] <- 1
+  R <- Sigma / outer(sdv, sdv)
+  e <- eigen(R, symmetric = TRUE)
+  keep <- e$values > max(e$values, 0) * sqrt(.Machine$double.eps)
+  V <- e$vectors[, keep, drop = FALSE]
+  R_pinv <- V %*% (t(V) / e$values[keep])
+  dimnames(R_pinv) <- dimnames(Sigma)
+  list(sd = sdv, R_pinv = R_pinv, rank = sum(keep))
+}

@@ -32,8 +32,12 @@
 #' @export
 riposte_score_matrix <- function(y, block, representations = riposte_reps_default()) {
   centred <- riposte_centred_scores(y, block, representations)
-  ## drop representations that are constant within every block (all-zero column)
-  keep <- colSums(abs(centred)) > 1e-12
+  ## drop representations that are constant within every block. The check is
+  ## relative to the size of the scores themselves, so it does not depend on the
+  ## units of Y (issue #1): a centred column counts as zero when it is no larger
+  ## than rounding error on the uncentred scores
+  size <- attr(centred, "size")
+  keep <- apply(abs(centred), 2, max) > sqrt(.Machine$double.eps) * size
   nm <- colnames(centred)
   list(
     scores  = centred[, keep, drop = FALSE],
@@ -92,5 +96,8 @@ riposte_centred_scores <- function(y, block, representations = riposte_reps_defa
   centred <- apply(raw, 2, function(col) col - stats::ave(col, block))
   if (is.null(dim(centred)))
     centred <- matrix(centred, nrow = n, dimnames = list(NULL, nm))
+  ## the largest absolute uncentred score of each representation, the scale
+  ## against which riposte_score_matrix() judges a centred column to be zero
+  attr(centred, "size") <- apply(abs(raw), 2, max)
   centred
 }
