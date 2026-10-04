@@ -122,3 +122,43 @@ test_that("a representation constant within every block is still dropped, whatev
   r <- riposte_test(Y ~ Z, data = d, representations = reps, statistic = "quadratic", seed = 1)
   expect_equal(r$dropped, "big_constant")
 })
+
+## The two remaining places where riposte compared a variance with the fixed
+## number 1e-12. A variance carries the outcome's units squared, so recording Y
+## in small enough units pushed a varying statistic below 1e-12.
+tiny_unit_data <- function() {
+  set.seed(1)
+  data.frame(Y = round(rnorm(200, 50, 10)), Z = rep(0:1, 100), x = rnorm(200))
+}
+
+test_that("covariance adjustment keeps the same representations when Y is in tiny units", {
+  ## the adjusted path dropped a representation whose sum varied by less than
+  ## 1e-12 across re-randomizations; with Y times 1e-8 that dropped the raw,
+  ## mean distance, and max distance sums. Residuals from a learner that is
+  ## linear in y scale with Y, so nothing should change.
+  d <- tiny_unit_data()
+  a <- riposte_test(Y ~ Z, data = d, statistic = "quadratic", adjust = ~ x, seed = 1, nresample = 199)
+  b <- riposte_test(Y ~ Z, data = transform(d, Y = Y * 1e-8), statistic = "quadratic",
+                    adjust = ~ x, seed = 1, nresample = 199)
+  expect_equal(b$kept, a$kept)
+  expect_equal(b$p.value, a$p.value)
+})
+
+test_that("a testable design is not refused because the outcome is in tiny units", {
+  ## riposte_assert_testable() refused when every variance was below 1e-12, a
+  ## check meant for designs where no block has both arms, where every variance
+  ## is exactly zero. With the raw score alone and Y times 1e-8 it refused a
+  ## design with 100 treated and 100 control units in one block.
+  d <- tiny_unit_data()
+  raw_only <- list(raw = function(y) y)
+  a <- riposte_test(Y ~ Z, data = d, representations = raw_only, statistic = "quadratic", seed = 1)
+  b <- riposte_test(Y ~ Z, data = transform(d, Y = Y * 1e-8), representations = raw_only,
+                    statistic = "quadratic", seed = 1)
+  expect_equal(b$p.value, a$p.value)
+})
+
+test_that("a design with no block holding both arms is still refused", {
+  d <- data.frame(Y = rnorm(20), Z = rep(0:1, each = 10), B = rep(1:2, each = 10))
+  expect_error(riposte_test(Y ~ Z | B, data = d, statistic = "quadratic", seed = 1),
+               "no block has both treated and control units")
+})
