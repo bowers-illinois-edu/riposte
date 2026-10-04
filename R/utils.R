@@ -97,7 +97,11 @@ riposte_check_nresample <- function(nresample) {
 #' @keywords internal
 #' @noRd
 riposte_assert_testable <- function(Sigma) {
-  if (length(Sigma) == 0L || all(abs(diag(Sigma)) < 1e-12))
+  ## a design with no block holding both arms gives every variance exactly
+  ## zero (each block's weight m (n - m) / (n (n - 1)) is 0), so the check is
+  ## for exact zeros; a fixed cutoff such as 1e-12 refused testable designs
+  ## when Y was recorded in small units (issue #1)
+  if (length(Sigma) == 0L || all(diag(Sigma) <= 0))
     stop("no block has both treated and control units; there is no within-block ",
          "randomization to test.", call. = FALSE)
 }

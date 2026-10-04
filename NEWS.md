@@ -17,6 +17,12 @@
   when its centred scores are within rounding error of zero relative to the
   size of its uncentred scores, instead of below the absolute number 1e-12,
   which dropped the raw score when Y was recorded in very small units.
+* Two other fixed cutoffs of 1e-12 on a variance are gone for the same reason.
+  Covariance adjustment drops a representation only when its statistics are
+  constant relative to their own size, so it no longer drops the raw,
+  distance, and max distance sums when Y is in small units. The check that
+  refuses a design with no block holding both arms now looks for variances
+  that are exactly zero, which is what such a design produces.
 
 # riposte 0.0.0.9006
 

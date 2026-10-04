@@ -113,8 +113,12 @@ riposte_residual_perm_stats <- function(y, X, block, draws, learner,
   ## then carries no information and would be a degenerate column. This selection
   ## is a function of all B+1 assignments, so it preserves the exchangeability the
   ## exactness argument needs. It also leaves the pooled covariance with no
-  ## zero-variance column for the screen's cov2cor.
-  keep <- apply(stats, 2, function(col) stats::var(col) > 1e-12)
+  ## zero-variance column for the screen's cov2cor. "Constant" is judged relative
+  ## to the size of the statistics themselves, so it does not depend on the
+  ## units of Y (issue #1): a fixed cutoff on the variance dropped real
+  ## representations when Y was recorded in small units.
+  keep <- apply(stats, 2, function(col)
+    stats::sd(col) > sqrt(.Machine$double.eps) * max(abs(col)))
   if (!any(keep))
     stop("every representation is constant across the residual re-randomizations; nothing to test.",
          call. = FALSE)
