@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9006</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,6 +34,13 @@
       <small>Source: <a href="https://github.com/bowers-illinois-edu/riposte/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.0.9007" id="riposte-0009007">riposte 0.0.0.9007<a class="anchor" aria-label="anchor" href="#riposte-0009007"></a></h2>
+<ul><li>The quadratic combination no longer depends on the units of the outcome (issue <a href="https://github.com/bowers-illinois-edu/riposte/issues/1" class="external-link">#1</a>). It inverted the covariance of the score sums with <code><a href="https://rdrr.io/pkg/MASS/man/ginv.html" class="external-link">MASS::ginv()</a></code>, whose cutoff of sqrt(eps) times the largest eigenvalue dropped real directions when the rank sum’s variance was ~10^7 times the raw sum’s, as on survey scales; rescaling Y could then change Q and its p-value. It now divides each score sum by its standard deviation and inverts the correlation matrix (<code>riposte_std_pinv()</code>), which gives the same Q in exact arithmetic, and it reports as <code>df</code> the number of directions that inverse keeps (it reported <code><a href="https://rdrr.io/r/base/qr.html" class="external-link">qr()</a></code>’s rank, which could exceed them). The asymptotic quadratic uses the same inverse. On an outcome with K &lt;= 7 values the quadratic now equals Pearson’s chi-square for the 2 x K table times (n - 1)/n on K - 1 df. Results change wherever <code>ginv()</code> had dropped a direction and are unchanged elsewhere.</li>
+<li>
+<code><a href="../reference/riposte_score_matrix.html">riposte_score_matrix()</a></code> drops a representation as constant within blocks when its centred scores are within rounding error of zero relative to the size of its uncentred scores, instead of below the absolute number 1e-12, which dropped the raw score when Y was recorded in very small units.</li>
+<li>Two other fixed cutoffs of 1e-12 on a variance are gone for the same reason. Covariance adjustment drops a representation only when its statistics are constant relative to their own size, so it no longer drops the raw, distance, and max distance sums when Y is in small units. The check that refuses a design with no block holding both arms now looks for variances that are exactly zero, which is what such a design produces.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9006" id="riposte-0009006">riposte 0.0.0.9006<a class="anchor" aria-label="anchor" href="#riposte-0009006"></a></h2>
 <ul><li><p><code><a href="../reference/riposte_test.html">riposte_test()</a></code> and <code><a href="../reference/riposte_components.html">riposte_components()</a></code> take <code>alternative = "greater"</code> or <code>"less"</code> for a one-sided test of the sharp null of no effect. A one-sided test counts only treated-score sums above (or below) their re-randomization mean. It is available for the max combination, which becomes the default when <code>alternative</code> is one-sided, and for the Cauchy combination; the quadratic and the screen have no one-sided form. The permutation, asymptotic (Cauchy, from one-sided normal tails), and saddlepoint (Cauchy, from <code>fastperm</code>’s one-sided saddlepoint) engines and covariance adjustment all support it. <code><a href="../reference/riposte_midp.html">riposte_midp()</a></code> takes the same argument.</p></li>

@@ -1,5 +1,37 @@
 # Changelog
 
+## riposte 0.0.0.9007
+
+- The quadratic combination no longer depends on the units of the
+  outcome (issue
+  [\#1](https://github.com/bowers-illinois-edu/riposte/issues/1)). It
+  inverted the covariance of the score sums with
+  [`MASS::ginv()`](https://rdrr.io/pkg/MASS/man/ginv.html), whose cutoff
+  of sqrt(eps) times the largest eigenvalue dropped real directions when
+  the rank sum’s variance was ~10^7 times the raw sum’s, as on survey
+  scales; rescaling Y could then change Q and its p-value. It now
+  divides each score sum by its standard deviation and inverts the
+  correlation matrix (`riposte_std_pinv()`), which gives the same Q in
+  exact arithmetic, and it reports as `df` the number of directions that
+  inverse keeps (it reported [`qr()`](https://rdrr.io/r/base/qr.html)’s
+  rank, which could exceed them). The asymptotic quadratic uses the same
+  inverse. On an outcome with K \<= 7 values the quadratic now equals
+  Pearson’s chi-square for the 2 x K table times (n - 1)/n on K - 1 df.
+  Results change wherever `ginv()` had dropped a direction and are
+  unchanged elsewhere.
+- [`riposte_score_matrix()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_score_matrix.md)
+  drops a representation as constant within blocks when its centred
+  scores are within rounding error of zero relative to the size of its
+  uncentred scores, instead of below the absolute number 1e-12, which
+  dropped the raw score when Y was recorded in very small units.
+- Two other fixed cutoffs of 1e-12 on a variance are gone for the same
+  reason. Covariance adjustment drops a representation only when its
+  statistics are constant relative to their own size, so it no longer
+  drops the raw, distance, and max distance sums when Y is in small
+  units. The check that refuses a design with no block holding both arms
+  now looks for variances that are exactly zero, which is what such a
+  design produces.
+
 ## riposte 0.0.0.9006
 
 - [`riposte_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_test.md)
