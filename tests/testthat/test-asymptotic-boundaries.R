@@ -28,9 +28,11 @@ test_that("a p-value near one retains its finite Cauchy statistic", {
   ## chi-square tail directly: subtracting the upper tail from 1 loses it.
   lower <- pchisq(1e-40 / 0.5, df = 1)
   expected <- -1 / tan(pi * lower)
+  ## this checks the precision of Liu and Xie's untruncated conversion near
+  ## p = 1, so it asks for that conversion with cauchy_truncation = 1
   res <- riposte_test(Y ~ trt, d, statistic = "cauchy",
                       representations = list(raw = identity),
-                      engine = "asymptotic")
+                      engine = "asymptotic", cauchy_truncation = 1)
   expect_true(is.finite(res$statistic))
   expect_equal(res$statistic / expected, 1, tolerance = 1e-12)
 })

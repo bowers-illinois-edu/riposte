@@ -93,7 +93,11 @@ riposte_tie_tol <- function(x) {
 #' pcauchy(hybrid_statistic, lower.tail = FALSE)
 #'
 #' # These are seven inputs, not the two combined p-values with equal weight.
-#' # The final Cauchy tail is an approximation, not a permutation p-value.
+#' # The final Cauchy tail is an approximation, not a permutation p-value, and a
+#' # single input of exactly 1 makes it 1. riposte_test(statistic = "hybrid")
+#' # computes the Hybrid either from re-randomization or, with
+#' # engine = "asymptotic", with the truncated conversion of
+#' # riposte_truncated_cauchy(), which keeps a p-value of 1 finite.
 #' @export
 riposte_acat_term <- function(p) {
   out <- tan((0.5 - p) * pi)

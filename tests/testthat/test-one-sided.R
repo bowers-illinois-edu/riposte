@@ -237,10 +237,15 @@ test_that("the asymptotic Cauchy uses one-sided normal tails", {
   sm <- riposte_score_matrix(d$Y, d$blk, reps)
   mom <- riposte_sw_moments(sm$scores, d$trt, d$blk)
   zstat <- (colSums(sm$scores * d$trt) - mom$mu) / sqrt(diag(mom$Sigma))
-  expect_equal(unname(res$component_p), unname(pnorm(zstat, lower.tail = FALSE)))
-  expect_equal(res$p.value,
-               pcauchy(mean(tan((0.5 - pnorm(zstat, lower.tail = FALSE)) * pi)),
-                       lower.tail = FALSE))
+  p1 <- pnorm(zstat, lower.tail = FALSE)
+  expect_equal(unname(res$component_p), unname(p1))
+  ## the default combines the one-sided p-values with the truncated conversion;
+  ## cauchy_truncation = 1 gives Liu and Xie's untruncated one
+  expect_equal(res$p.value, riposte_truncated_cauchy(p1))
+  res1 <- riposte_test(Y ~ trt | blk, d, statistic = "cauchy",
+                       engine = "asymptotic", representations = reps,
+                       alternative = "greater", cauchy_truncation = 1)
+  expect_equal(res1$p.value, pcauchy(mean(tan((0.5 - p1) * pi)), lower.tail = FALSE))
 })
 
 test_that("the direction matters: harm gives a small 'less' p-value and a large 'greater' one", {

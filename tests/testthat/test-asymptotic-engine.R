@@ -82,8 +82,11 @@ test_that("Cauchy uses the six individual chi-square p-values", {
   ## These p-values are away from zero and one, so the defining tangent
   ## expression can be evaluated directly as an independent reference.
   tc <- mean(tan((0.5 - p) * pi))
+  ## cauchy_truncation = 1 is Liu and Xie's original combination, the one this
+  ## reference computes; the default truncated version is tested in
+  ## test-truncated-cauchy.R
   res <- riposte_test(Y ~ trt | blk, d, statistic = "cauchy",
-                      engine = "asymptotic")
+                      engine = "asymptotic", cauchy_truncation = 1)
   expect_equal(res$statistic, tc, tolerance = 1e-9)
   expect_equal(res$p.value, pcauchy(tc, lower.tail = FALSE), tolerance = 1e-9)
 })

@@ -15,6 +15,9 @@
 ##              calibration, ignores the covariance. Mid-p keeps the transform off
 ##              its poles --- no clamp, no probit.
 ##   max        the largest standardized representation; a third comparison.
+##   hybrid     the Cauchy average of the representations' two-sided mid-p
+##              values and the quadratic's mid-p value, seven terms with equal
+##              weight for the default six representations.
 ##
 ## The Cauchy and the max also take a one-sided alternative. "greater" counts
 ## only treated-score sums above their permutation mean, "less" only sums below
@@ -53,6 +56,24 @@ riposte_cauchy_from_T <- function(Tmat, alternative = "two.sided") {
   Tc <- rowMeans(riposte_acat_term(P))
   list(statistic = unname(Tc[1]), p.value = riposte_perm_pvalue(Tc),
        component_midp = stats::setNames(P[1, ], colnames(Tmat)))
+}
+
+riposte_hybrid_from_T <- function(Tmat, mu, Sigma) {
+  ## The Hybrid referred to the randomization distribution: at every
+  ## assignment, the Cauchy terms of the representations' two-sided mid-p values
+  ## and of the quadratic's mid-p value (large Q is extreme), averaged with equal
+  ## weight. Mid-p values stay strictly inside (0, 1), so a representation whose
+  ## treated sum sits at its mean contributes a finite term instead of minus
+  ## infinity. The quadratic uses the same correlation-scale inverse as
+  ## riposte_quadratic_from_T().
+  inv <- riposte_std_pinv(Sigma)
+  cen <- sweep(sweep(Tmat, 2, mu), 2, inv$sd, "/")
+  q <- rowSums((cen %*% inv$R_pinv) * cen)
+  P <- cbind(apply(Tmat, 2, riposte_midp, alternative = "two.sided"),
+             quadratic = riposte_midp(q, alternative = "greater"))
+  h <- rowMeans(riposte_acat_term(P))
+  list(statistic = unname(h[1]), p.value = riposte_perm_pvalue(h), df = inv$rank,
+       component_p = stats::setNames(P[1, ], colnames(P)))
 }
 
 riposte_max_from_T <- function(Tmat, mu, sdv, alternative = "two.sided") {
@@ -105,6 +126,22 @@ riposte_cauchy <- function(scores, z, block, draws = NULL, nresample = 1999L,
                 component_midp = numeric(0)))
   Tmat <- riposte_perm_stats(scores, z, block, nresample, draws)$stats
   riposte_cauchy_from_T(Tmat, alternative)
+}
+
+#' Hybrid combination (six representations and the quadratic, Cauchy-combined)
+#'
+#' @inheritParams riposte_quadratic
+#' @return a list with the observed `statistic`, its permutation `p.value`,
+#'   `df` (the quadratic's rank), and `component_p` (the seven observed mid-p
+#'   values).
+#' @keywords internal
+#' @noRd
+riposte_hybrid <- function(scores, z, block, moments = NULL, draws = NULL,
+                           nresample = 1999L) {
+  scores <- as.matrix(scores)
+  moments <- moments %||% riposte_sw_moments(scores, z, block)
+  Tmat <- riposte_perm_stats(scores, z, block, nresample, draws)$stats
+  riposte_hybrid_from_T(Tmat, moments$mu, moments$Sigma)
 }
 
 #' Max combination (largest standardized representation)
