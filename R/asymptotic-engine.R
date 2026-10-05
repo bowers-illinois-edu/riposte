@@ -2,6 +2,20 @@
 ## The assignment design still determines the exact mean and covariance of
 ## the treated-score sums. Only the reference used for the p-value changes.
 
+## Log of the chi-square-1 lower tail, P(chi2_1 < x). Myla Burton reported
+## platform-dependent results from pchisq() at extreme small x. Below `tol`
+## we use P(chi2_1 < x) = P(|Z| < sqrt(x)) = sqrt(2x/pi) * (1 - x/6 + ...),
+## dropping the factor (1 - x/6), which equals 1 in double precision there.
+## This needs only log(), so it gives the same answer on every platform.
+riposte_log_chisq1_lower <- function(x, tol = 1e-30) {
+  small <- x < tol
+  out <- numeric(length(x))
+  out[small] <- 0.5 * log(2 / pi) + 0.5 * log(x[small])
+  out[!small] <- stats::pchisq(x[!small], df = 1, lower.tail = TRUE,
+                               log.p = TRUE)
+  out
+}
+
 riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided") {
   moments <- riposte_sw_moments(sm$scores, des$z, des$block)
   riposte_assert_testable(moments$Sigma)
@@ -37,7 +51,7 @@ riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided
     if (alternative == "two.sided") {
       squared <- standardized^2
       log_p <- stats::pchisq(squared, df = 1, lower.tail = FALSE, log.p = TRUE)
-      log_1mp <- stats::pchisq(squared, df = 1, lower.tail = TRUE, log.p = TRUE)
+      log_1mp <- riposte_log_chisq1_lower(squared)
     } else {
       oriented <- if (alternative == "greater") standardized else -standardized
       log_p <- stats::pnorm(oriented, lower.tail = FALSE, log.p = TRUE)

@@ -1,5 +1,11 @@
 # riposte 0.0.0.9007
 
+* The two-sided asymptotic Cauchy test computes the chi-square lower tail
+  below x = 1e-30 from sqrt(2x/pi) instead of `pchisq()`, which Myla Burton
+  reported gives platform-dependent results there. The two agree to double
+  precision wherever `pchisq()` is accurate, so results on such platforms
+  are unchanged.
+
 * The quadratic combination no longer depends on the units of the outcome
   (issue #1). It inverted the covariance of the score sums with
   `MASS::ginv()`, whose cutoff of sqrt(eps) times the largest eigenvalue

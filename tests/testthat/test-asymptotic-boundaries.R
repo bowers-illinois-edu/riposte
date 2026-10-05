@@ -24,15 +24,37 @@ test_that("a p-value near one retains its finite Cauchy statistic", {
   ## p = 1 case, whose statistic is -Inf by design, not the case tested here.
   d <- data.frame(Y = c(-1e-20, 1e-20, 1, -1), trt = c(1, 0, 0, 0))
   ## The mean is zero, the treated sum is -1e-20, and its permutation
-  ## variance is 1 * 3 / (4 * 3) * 2 = 0.5. Compute the small lower
-  ## chi-square tail directly: subtracting the upper tail from 1 loses it.
-  lower <- pchisq(1e-40 / 0.5, df = 1)
+  ## variance is 1 * 3 / (4 * 3) * 2 = 0.5, so the squared standardized sum
+  ## is x = (1e-20)^2 / 0.5 = 2e-40. Compute the small lower chi-square tail
+  ## directly: subtracting the upper tail from 1 loses it. The expected value
+  ## does not call pchisq(). Where pchisq() is inaccurate at so small an x,
+  ## it would make the expected value wrong in the same way as the code.
+  ## P(chi2_1 < x) = P(|Z| < sqrt(x)) = sqrt(2x/pi) * (1 - x/6 + ...), and at
+  ## x = 2e-40 the factor (1 - x/6) equals 1 in double precision.
+  x <- 1e-40 / 0.5
+  lower <- sqrt(2 * x / pi)
   expected <- -1 / tan(pi * lower)
   res <- riposte_test(Y ~ trt, d, statistic = "cauchy",
                       representations = list(raw = identity),
                       engine = "asymptotic")
   expect_true(is.finite(res$statistic))
   expect_equal(res$statistic / expected, 1, tolerance = 1e-12)
+})
+
+## Below x = 1e-30, riposte_log_chisq1_lower() computes log P(chi2_1 < x)
+## from a formula instead of calling pchisq(). Myla Burton reported
+## platform-dependent results from pchisq() at extreme small x; we have not
+## reproduced them. The formula comes from the series above with the factor
+## (1 - x/6) dropped, which equals 1 in double precision once x is below
+## about 1e-16.
+
+test_that("the small-x formula agrees with pchisq where pchisq is accurate", {
+  ## tol = 1 makes the function use the formula at values where it would
+  ## otherwise call pchisq(), so this checks the formula itself against an
+  ## independent calculation.
+  x <- c(1e-28, 1e-24, 1e-20)
+  expect_equal(riposte_log_chisq1_lower(x, tol = 1),
+               pchisq(x, df = 1, log.p = TRUE), tolerance = 1e-12)
 })
 
 test_that("Cauchy preserves a tiny tail even if its statistic overflows", {
