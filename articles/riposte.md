@@ -100,7 +100,7 @@ riposte_test(outcome ~ treated | block, data = dat,
 #>   360 units in 12 blocks
 #>   asymptotic engine (standard Cauchy; no re-randomization)
 #>   combination: cauchy
-#>   statistic = 335333801.9563,  approximate p-value = 9.49233e-10
+#>   statistic = 372593114.2778,  approximate p-value = 9.49233e-10
 ```
 
 For the quadratic approximation, the degrees of freedom are the number

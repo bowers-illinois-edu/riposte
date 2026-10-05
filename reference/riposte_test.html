@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9007</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9008</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,7 +46,7 @@
 <span>  <span class="va">data</span>,</span>
 <span>  blocks <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  clusters <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  statistic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"screen"</span>, <span class="st">"quadratic"</span>, <span class="st">"cauchy"</span>, <span class="st">"max"</span><span class="op">)</span>,</span>
+<span>  statistic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"screen"</span>, <span class="st">"quadratic"</span>, <span class="st">"cauchy"</span>, <span class="st">"max"</span>, <span class="st">"hybrid"</span><span class="op">)</span>,</span>
 <span>  representations <span class="op">=</span> <span class="fu"><a href="riposte_reps_default.html">riposte_reps_default</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  nresample <span class="op">=</span> <span class="fl">1999L</span>,</span>
 <span>  screen <span class="op">=</span> <span class="fu"><a href="riposte_screen_control.html">riposte_screen_control</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -57,6 +57,7 @@
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  engine <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"permute"</span>, <span class="st">"saddlepoint"</span>, <span class="st">"asymptotic"</span><span class="op">)</span>,</span>
 <span>  alternative <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"two.sided"</span>, <span class="st">"greater"</span>, <span class="st">"less"</span><span class="op">)</span>,</span>
+<span>  cauchy_truncation <span class="op">=</span> <span class="fl">0.9</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -91,8 +92,10 @@ must be constant within a cluster and clusters must nest within blocks.</p></dd>
 
 <dt id="arg-statistic">statistic<a class="anchor" aria-label="anchor" href="#arg-statistic"></a></dt>
 <dd><p>which combination to use: <code>"screen"</code> (default), <code>"quadratic"</code>,
-<code>"cauchy"</code>, or <code>"max"</code>. With a one-sided <code>alternative</code>, only <code>"max"</code> (the
-default then) and <code>"cauchy"</code> are available.</p></dd>
+<code>"cauchy"</code>, <code>"max"</code>, or <code>"hybrid"</code>. The hybrid is the Cauchy combination of
+each representation's own p-value and the quadratic's p-value, all with equal
+weight (seven p-values for the default six representations). With a one-sided
+<code>alternative</code>, only <code>"max"</code> (the default then) and <code>"cauchy"</code> are available.</p></dd>
 
 
 <dt id="arg-representations">representations<a class="anchor" aria-label="anchor" href="#arg-representations"></a></dt>
@@ -149,10 +152,13 @@ re-randomization (exact). <code>"asymptotic"</code> uses a chi-square reference 
 rank of the permutation covariance. For <code>statistic = "cauchy"</code>, it computes
 each representation's two-sided p-value from its squared standardized
 statistic and a chi-square distribution on one degree of freedom, then
-compares the mean Cauchy transform with a standard Cauchy distribution.
+combines them with the truncated Cauchy combination of Gui, Jiang, and Wang
+(2025); see <code>cauchy_truncation</code>. For <code>statistic = "hybrid"</code>, it adds the
+chi-square p-value of the quadratic to those p-values before combining.
 These are approximations, available without <code>adjust</code>, and do not require
-<code>coin</code> or <code>fastperm</code>. Set <code>statistic</code> explicitly to <code>"quadratic"</code> or
-<code>"cauchy"</code>; the max and screen approximations are not implemented.
+<code>coin</code> or <code>fastperm</code>. Set <code>statistic</code> explicitly to <code>"quadratic"</code>,
+<code>"cauchy"</code>, or <code>"hybrid"</code>; the max and screen approximations are not
+implemented.
 <code>"saddlepoint"</code> computes the combination with no
 re-randomization, via <code>fastperm</code>: the unadjusted Cauchy (each representation's
 marginal saddlepoint p-value combined by the Liu-Xie analytic tail), the
@@ -177,6 +183,17 @@ their block. Every alternative tests the same sharp null hypothesis of no
 effect; see Details.</p></dd>
 
 
+<dt id="arg-cauchy-truncation">cauchy_truncation<a class="anchor" aria-label="anchor" href="#arg-cauchy-truncation"></a></dt>
+<dd><p>the share \(t\) of the Cauchy distribution kept by
+the large-sample Cauchy combination and hybrid, in (0, 1]; 0.9 by default.
+Each p-value \(p\) is converted to \(\tan((0.5 - t p)\pi)\) as in Gui,
+Jiang, and Wang (2025), so a p-value of 1 converts to \(\tan(-0.4\pi) =
+-3.08\) rather than minus infinity; see <code><a href="riposte_truncated_cauchy.html">riposte_truncated_cauchy()</a></code>. <code>1</code>
+gives Liu and Xie's untruncated combination. Used only with
+<code>engine = "asymptotic"</code>: the re-randomization Cauchy and hybrid combine mid-p
+values, which are never exactly 1.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>reserved.</p></dd>
 
@@ -194,7 +211,9 @@ the seed). The closed-form moments and the screen's condition number are
 exact, not Monte-Carlo. With <code>engine = "asymptotic"</code>, <code>nresample</code> is zero
 and the p-value uses the stated approximation, not a permutation count.
 Cauchy results from this engine also include <code>component_p</code>, the individual
-chi-square p-values.</p>
+chi-square p-values, and hybrid results add the quadratic's. With
+<code>engine = "permute"</code>, hybrid results include <code>component_p</code>, the seven
+observed mid-p values.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -216,14 +235,21 @@ treatment did, so the re-randomization distribution does not change, and
 raising treated outcomes can only raise the observed treated-score sums, so
 the p-value can only grow. The same holds for <code>"greater"</code> with "raised" and
 "lowered" exchanged.</p>
-<p>The asymptotic Cauchy calculation retains both tails on the log scale to
-avoid artificial zeros and ones. An exactly zero component statistic gives
-an individual p-value of one and a Cauchy term of negative infinity; the
-combined p-value is then one unless an opposing infinite term makes the sum
-undefined. That case gives an error. This engine never switches silently to
-permutations. It combines the individual p-values only; it does not add
-the quadratic p-value as another term. The example in <code><a href="riposte_acat_term.html">riposte_acat_term()</a></code>
-shows how to include that p-value to calculate the paper's Hybrid test.</p>
+<p>The asymptotic Cauchy calculation works with the logarithms of the
+p-values, so a p-value too small for its converted value to be stored still
+gives a representable combined p-value. An exactly zero component statistic
+gives an individual p-value of one. With the default <code>cauchy_truncation</code>,
+that p-value converts to \(\tan(-0.4\pi)\), a finite number, and the
+other p-values still count. With <code>cauchy_truncation = 1</code> it converts to minus
+infinity and the combined p-value is one unless an opposing infinite term
+makes the sum undefined, which gives an error. This engine never switches
+silently to permutations.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
+    <p>Gui, L., Jiang, Y., and Wang, J. (2025). Aggregating dependent
+signals with heavy-tailed combination tests. <em>Biometrika</em>, 112(4),
+asaf038. <a href="https://doi.org/10.1093/biomet/asaf038" class="external-link">doi:10.1093/biomet/asaf038</a></p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

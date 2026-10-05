@@ -75,3 +75,5 @@ The permutation engine and the closed-form moments behind the tests.
   : Mid-p permutation p-values
 - [`riposte_acat_term()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_acat_term.md)
   : Pole-aware Cauchy (ACAT) transform of p-values
+- [`riposte_truncated_cauchy()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_truncated_cauchy.md)
+  : Truncated Cauchy combination of p-values

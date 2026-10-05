@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9007</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9008</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,6 +34,12 @@
       <small>Source: <a href="https://github.com/bowers-illinois-edu/riposte/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.0.9008" id="riposte-0009008">riposte 0.0.0.9008<a class="anchor" aria-label="anchor" href="#riposte-0009008"></a></h2>
+<ul><li>The large-sample Cauchy combination (<code>engine = "asymptotic"</code>) now uses the truncated conversion of Gui, Jiang, and Wang (2025, Biometrika 112(4), asaf038): each p-value p becomes tan((0.5 - 0.9 p) pi), and with n p-values whose converted values sum to S the combined p-value is min(1, n P(Cauchy &gt; S) / 0.9). Liu and Xie’s conversion tan((0.5 - p) pi) sends p = 1 to minus infinity, so one representation whose treated sum equalled its mean set the combined p-value to 1; on Wallsten and Nteta’s 36-respondent comparison in the Sarkar and Coppock reanalysis it gave 1 where the difference in means gave 0.028, and it now gives 0.057. The new argument <code>cauchy_truncation</code> (default 0.9) sets the share kept; <code>1</code> restores the old behaviour. The new exported function <code><a href="../reference/riposte_truncated_cauchy.html">riposte_truncated_cauchy()</a></code> combines any vector of p-values this way.</li>
+<li>
+<code>riposte_test(statistic = "hybrid")</code> computes the Hybrid: the Cauchy combination of each representation’s own p-value and the quadratic’s, with equal weight. With the default engine it refers that statistic to the re-randomization distribution, using mid-p values as the Cauchy combination does; with <code>engine = "asymptotic"</code> it uses the truncated conversion. It has no saddlepoint version and no one-sided form.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9007" id="riposte-0009007">riposte 0.0.0.9007<a class="anchor" aria-label="anchor" href="#riposte-0009007"></a></h2>
 <ul><li><p>The two-sided asymptotic Cauchy test computes the chi-square lower tail below x = 1e-30 from sqrt(2x/pi) instead of <code><a href="https://rdrr.io/r/stats/Chisquare.html" class="external-link">pchisq()</a></code>, which Myla Burton reported gives platform-dependent results there. The two agree to double precision wherever <code><a href="https://rdrr.io/r/stats/Chisquare.html" class="external-link">pchisq()</a></code> is accurate, so results on such platforms are unchanged.</p></li>
