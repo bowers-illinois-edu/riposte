@@ -153,7 +153,8 @@ riposte_adjusted_combination <- function(Tmat, statistic, screen_control,
       riposte_quadratic_from_T(Tmat, mu, Sig)
     },
     cauchy = riposte_cauchy_from_T(Tmat, alternative),
-    max    = riposte_max_from_T(Tmat, mu, sqrt(diag(Sigma)), alternative)
+    max    = riposte_max_from_T(Tmat, mu, sqrt(diag(Sigma)), alternative),
+    hybrid = riposte_hybrid_from_T(Tmat, mu, Sigma)
   )
   list(result = res, chosen = chosen, screen = if (statistic == "screen") scr else NULL,
        condition = scr$condition)

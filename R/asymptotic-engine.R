@@ -16,7 +16,8 @@ riposte_log_chisq1_lower <- function(x, tol = 1e-30) {
   out
 }
 
-riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided") {
+riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided",
+                                    truncation = 0.9) {
   moments <- riposte_sw_moments(sm$scores, des$z, des$block)
   riposte_assert_testable(moments$Sigma)
 
@@ -30,36 +31,60 @@ riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided
   moments$Sigma <- moments$Sigma[keep, keep, drop = FALSE]
   centered <- as.numeric(crossprod(des$z, scores)) - moments$mu
 
-  if (statistic == "quadratic") {
-    ## The same inverse as the permutation quadratic (riposte_std_pinv): the
-    ## correlation scale keeps the retained directions, and so both the
-    ## statistic and its degrees of freedom, free of the units of Y (issue #1).
-    ## Duplicated scores add neither.
+  ## The quadratic: needed alone and as the hybrid's seventh p-value. The same
+  ## inverse as the permutation quadratic (riposte_std_pinv): the correlation
+  ## scale keeps the retained directions, and so both the statistic and its
+  ## degrees of freedom, free of the units of Y (issue #1). Duplicated scores
+  ## add neither.
+  quadratic <- function() {
     inv <- riposte_std_pinv(moments$Sigma)
     standardized_c <- centered / inv$sd
     q <- drop(crossprod(standardized_c, inv$R_pinv %*% standardized_c))
-    df <- inv$rank
-    result <- list(statistic = q,
-                   p.value = stats::pchisq(q, df = df, lower.tail = FALSE),
-                   df = df)
-  } else {
+    return(list(statistic = q, df = inv$rank,
+                log_p = stats::pchisq(q, df = inv$rank, lower.tail = FALSE, log.p = TRUE),
+                log_1mp = stats::pchisq(q, df = inv$rank, lower.tail = TRUE, log.p = TRUE)))
+  }
+
+  ## Each representation's own p-value. Calculate both tails directly:
+  ## subtraction from 1 would erase a small tail, turning a finite Cauchy term
+  ## into an artificial infinity. A one-sided p-value is a normal tail of the
+  ## standardized sum; the two-sided one is the chi-square tail of its square.
+  components <- function() {
     standardized <- centered / sqrt(diag(moments$Sigma))
-    ## Calculate both tails directly. Subtraction from 1 would erase a
-    ## small tail, turning a finite Cauchy term into an artificial infinity.
-    ## A one-sided p-value is a normal tail of the standardized sum; the
-    ## two-sided one is the chi-square tail of its square.
     if (alternative == "two.sided") {
       squared <- standardized^2
-      log_p <- stats::pchisq(squared, df = 1, lower.tail = FALSE, log.p = TRUE)
-      log_1mp <- riposte_log_chisq1_lower(squared)
-    } else {
-      oriented <- if (alternative == "greater") standardized else -standardized
-      log_p <- stats::pnorm(oriented, lower.tail = FALSE, log.p = TRUE)
-      log_1mp <- stats::pnorm(oriented, lower.tail = TRUE, log.p = TRUE)
+      return(list(log_p = stats::pchisq(squared, df = 1, lower.tail = FALSE, log.p = TRUE),
+                  log_1mp = riposte_log_chisq1_lower(squared)))
     }
-    result <- riposte_cauchy_log_tails(log_p, log_1mp)
+    oriented <- if (alternative == "greater") standardized else -standardized
+    return(list(log_p = stats::pnorm(oriented, lower.tail = FALSE, log.p = TRUE),
+                log_1mp = stats::pnorm(oriented, lower.tail = TRUE, log.p = TRUE)))
+  }
+
+  ## The Cauchy combination of a set of p-values: Gui, Jiang, and Wang's
+  ## truncated conversion when truncation < 1 (see truncated-cauchy.R), Liu and
+  ## Xie's untruncated one when truncation = 1.
+  combine <- function(log_p, log_1mp) {
+    if (truncation < 1) riposte_truncated_cauchy_log(log_p, truncation)
+    else riposte_cauchy_log_tails(log_p, log_1mp)
+  }
+
+  if (statistic == "quadratic") {
+    qd <- quadratic()
+    result <- list(statistic = qd$statistic, p.value = exp(qd$log_p), df = qd$df)
+  } else if (statistic == "cauchy") {
+    cp <- components()
+    result <- combine(cp$log_p, cp$log_1mp)
     result$df <- NA_integer_
-    result$component_p <- stats::setNames(exp(log_p), colnames(scores))
+    result$component_p <- stats::setNames(exp(cp$log_p), colnames(scores))
+  } else {
+    ## the hybrid: the six representations' p-values and the quadratic's, with
+    ## equal weight
+    cp <- components(); qd <- quadratic()
+    result <- combine(c(cp$log_p, qd$log_p), c(cp$log_1mp, qd$log_1mp))
+    result$df <- qd$df
+    result$component_p <- stats::setNames(exp(c(cp$log_p, qd$log_p)),
+                                          c(colnames(scores), "quadratic"))
   }
 
   return(c(result, list(combination = statistic,

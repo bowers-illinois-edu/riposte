@@ -38,5 +38,9 @@ hybrid_statistic <- mean(riposte_acat_term(hybrid_inputs))
 pcauchy(hybrid_statistic, lower.tail = FALSE)
 
 # These are seven inputs, not the two combined p-values with equal weight.
-# The final Cauchy tail is an approximation, not a permutation p-value.
+# The final Cauchy tail is an approximation, not a permutation p-value, and a
+# single input of exactly 1 makes it 1. riposte_test(statistic = "hybrid")
+# computes the Hybrid either from re-randomization or, with
+# engine = "asymptotic", with the truncated conversion of
+# riposte_truncated_cauchy(), which keeps a p-value of 1 finite.
 }

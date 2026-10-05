@@ -9,7 +9,7 @@ riposte_test(
   data,
   blocks = NULL,
   clusters = NULL,
-  statistic = c("screen", "quadratic", "cauchy", "max"),
+  statistic = c("screen", "quadratic", "cauchy", "max", "hybrid"),
   representations = riposte_reps_default(),
   nresample = 1999L,
   screen = riposte_screen_control(),
@@ -20,6 +20,7 @@ riposte_test(
   seed = NULL,
   engine = c("permute", "saddlepoint", "asymptotic"),
   alternative = c("two.sided", "greater", "less"),
+  cauchy_truncation = 0.9,
   ...
 )
 }
@@ -41,8 +42,10 @@ blocks, and the effective sample size is the number of clusters. Treatment
 must be constant within a cluster and clusters must nest within blocks.}
 
 \item{statistic}{which combination to use: \code{"screen"} (default), \code{"quadratic"},
-\code{"cauchy"}, or \code{"max"}. With a one-sided \code{alternative}, only \code{"max"} (the
-default then) and \code{"cauchy"} are available.}
+\code{"cauchy"}, \code{"max"}, or \code{"hybrid"}. The hybrid is the Cauchy combination of
+each representation's own p-value and the quadratic's p-value, all with equal
+weight (seven p-values for the default six representations). With a one-sided
+\code{alternative}, only \code{"max"} (the default then) and \code{"cauchy"} are available.}
 
 \item{representations}{a named list of representation functions;
 \code{\link[=riposte_reps_default]{riposte_reps_default()}} by default. Supply your own to combine a different
@@ -81,10 +84,13 @@ re-randomization (exact). \code{"asymptotic"} uses a chi-square reference for
 rank of the permutation covariance. For \code{statistic = "cauchy"}, it computes
 each representation's two-sided p-value from its squared standardized
 statistic and a chi-square distribution on one degree of freedom, then
-compares the mean Cauchy transform with a standard Cauchy distribution.
+combines them with the truncated Cauchy combination of Gui, Jiang, and Wang
+(2025); see \code{cauchy_truncation}. For \code{statistic = "hybrid"}, it adds the
+chi-square p-value of the quadratic to those p-values before combining.
 These are approximations, available without \code{adjust}, and do not require
-\code{coin} or \code{fastperm}. Set \code{statistic} explicitly to \code{"quadratic"} or
-\code{"cauchy"}; the max and screen approximations are not implemented.
+\code{coin} or \code{fastperm}. Set \code{statistic} explicitly to \code{"quadratic"},
+\code{"cauchy"}, or \code{"hybrid"}; the max and screen approximations are not
+implemented.
 \code{"saddlepoint"} computes the combination with no
 re-randomization, via \code{fastperm}: the unadjusted Cauchy (each representation's
 marginal saddlepoint p-value combined by the Liu-Xie analytic tail), the
@@ -106,6 +112,15 @@ units sit closer to (\code{"less"}) or farther from (\code{"greater"}) the rest 
 their block. Every alternative tests the same sharp null hypothesis of no
 effect; see Details.}
 
+\item{cauchy_truncation}{the share \eqn{t} of the Cauchy distribution kept by
+the large-sample Cauchy combination and hybrid, in (0, 1]; 0.9 by default.
+Each p-value \eqn{p} is converted to \eqn{\tan((0.5 - t p)\pi)} as in Gui,
+Jiang, and Wang (2025), so a p-value of 1 converts to \eqn{\tan(-0.4\pi) =
+-3.08} rather than minus infinity; see \code{\link[=riposte_truncated_cauchy]{riposte_truncated_cauchy()}}. \code{1}
+gives Liu and Xie's untruncated combination. Used only with
+\code{engine = "asymptotic"}: the re-randomization Cauchy and hybrid combine mid-p
+values, which are never exactly 1.}
+
 \item{...}{reserved.}
 }
 \value{
@@ -120,7 +135,9 @@ the seed). The closed-form moments and the screen's condition number are
 exact, not Monte-Carlo. With \code{engine = "asymptotic"}, \code{nresample} is zero
 and the p-value uses the stated approximation, not a permutation count.
 Cauchy results from this engine also include \code{component_p}, the individual
-chi-square p-values.
+chi-square p-values, and hybrid results add the quadratic's. With
+\code{engine = "permute"}, hybrid results include \code{component_p}, the seven
+observed mid-p values.
 }
 \description{
 Combined randomization-based test of the sharp null
@@ -146,12 +163,18 @@ raising treated outcomes can only raise the observed treated-score sums, so
 the p-value can only grow. The same holds for \code{"greater"} with "raised" and
 "lowered" exchanged.
 
-The asymptotic Cauchy calculation retains both tails on the log scale to
-avoid artificial zeros and ones. An exactly zero component statistic gives
-an individual p-value of one and a Cauchy term of negative infinity; the
-combined p-value is then one unless an opposing infinite term makes the sum
-undefined. That case gives an error. This engine never switches silently to
-permutations. It combines the individual p-values only; it does not add
-the quadratic p-value as another term. The example in \code{\link[=riposte_acat_term]{riposte_acat_term()}}
-shows how to include that p-value to calculate the paper's Hybrid test.
+The asymptotic Cauchy calculation works with the logarithms of the
+p-values, so a p-value too small for its converted value to be stored still
+gives a representable combined p-value. An exactly zero component statistic
+gives an individual p-value of one. With the default \code{cauchy_truncation},
+that p-value converts to \eqn{\tan(-0.4\pi)}, a finite number, and the
+other p-values still count. With \code{cauchy_truncation = 1} it converts to minus
+infinity and the combined p-value is one unless an opposing infinite term
+makes the sum undefined, which gives an error. This engine never switches
+silently to permutations.
+}
+\references{
+Gui, L., Jiang, Y., and Wang, J. (2025). Aggregating dependent
+signals with heavy-tailed combination tests. \emph{Biometrika}, 112(4),
+asaf038. \doi{10.1093/biomet/asaf038}
 }

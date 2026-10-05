@@ -1,3 +1,24 @@
+# riposte 0.0.0.9008
+
+* The large-sample Cauchy combination (`engine = "asymptotic"`) now uses the
+  truncated conversion of Gui, Jiang, and Wang (2025, Biometrika 112(4),
+  asaf038): each p-value p becomes tan((0.5 - 0.9 p) pi), and with n
+  p-values whose converted values sum to S the combined p-value is
+  min(1, n P(Cauchy > S) / 0.9). Liu and Xie's conversion tan((0.5 - p) pi)
+  sends p = 1 to minus infinity, so one representation whose treated sum
+  equalled its mean set the combined p-value to 1; on Wallsten and Nteta's
+  36-respondent comparison in the Sarkar and Coppock reanalysis it gave 1
+  where the difference in means gave 0.028, and it now gives 0.057. The new
+  argument `cauchy_truncation` (default 0.9) sets the share kept; `1` restores
+  the old behaviour. The new exported function `riposte_truncated_cauchy()`
+  combines any vector of p-values this way.
+* `riposte_test(statistic = "hybrid")` computes the Hybrid: the Cauchy
+  combination of each representation's own p-value and the quadratic's, with
+  equal weight. With the default engine it refers that statistic to the
+  re-randomization distribution, using mid-p values as the Cauchy combination
+  does; with `engine = "asymptotic"` it uses the truncated conversion. It has
+  no saddlepoint version and no one-sided form.
+
 # riposte 0.0.0.9007
 
 * The two-sided asymptotic Cauchy test computes the chi-square lower tail
