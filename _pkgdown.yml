@@ -43,6 +43,7 @@ reference:
   - riposte_score_matrix
   - riposte_midp
   - riposte_acat_term
+  - riposte_truncated_cauchy
 
 articles:
 - title: Articles
