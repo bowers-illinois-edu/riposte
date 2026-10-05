@@ -2,6 +2,14 @@
 
 ## riposte 0.0.0.9007
 
+- The two-sided asymptotic Cauchy test computes the chi-square lower
+  tail below x = 1e-30 from sqrt(2x/pi) instead of
+  [`pchisq()`](https://rdrr.io/r/stats/Chisquare.html), which Myla
+  Burton reported gives platform-dependent results there. The two agree
+  to double precision wherever
+  [`pchisq()`](https://rdrr.io/r/stats/Chisquare.html) is accurate, so
+  results on such platforms are unchanged.
+
 - The quadratic combination no longer depends on the units of the
   outcome (issue
   [\#1](https://github.com/bowers-illinois-edu/riposte/issues/1)). It
@@ -19,11 +27,13 @@
   Pearson’s chi-square for the 2 x K table times (n - 1)/n on K - 1 df.
   Results change wherever `ginv()` had dropped a direction and are
   unchanged elsewhere.
+
 - [`riposte_score_matrix()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_score_matrix.md)
   drops a representation as constant within blocks when its centred
   scores are within rounding error of zero relative to the size of its
   uncentred scores, instead of below the absolute number 1e-12, which
   dropped the raw score when Y was recorded in very small units.
+
 - Two other fixed cutoffs of 1e-12 on a variance are gone for the same
   reason. Covariance adjustment drops a representation only when its
   statistics are constant relative to their own size, so it no longer
