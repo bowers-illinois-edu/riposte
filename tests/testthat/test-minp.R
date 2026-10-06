@@ -280,16 +280,17 @@ test_that("the large-sample and saddlepoint engines refuse min-p", {
                "minp|min-p")
 })
 
-test_that("the abbreviation 'm' still means the max", {
-  ## Before min-p existed, statistic = "m" matched "max" by partial matching.
-  ## "minp" also starts with "m", so riposte_test() resolves "m" to "max"
-  ## explicitly to keep earlier calls working; "mi" and longer abbreviations
-  ## of "minp" select min-p.
+test_that("riposte_test() requires the full name of the statistic", {
+  ## "max" and "minp" share a first letter, so riposte_test() accepts only full
+  ## names; an abbreviation stops with an error that lists the names
   dat <- minp_design(5)
-  res_m <- riposte_test(y ~ z | b, dat, statistic = "m", nresample = 99, seed = 5)
-  res_max <- riposte_test(y ~ z | b, dat, statistic = "max", nresample = 99, seed = 5)
-  expect_equal(res_m$combination, "max")
-  expect_equal(res_m$p.value, res_max$p.value)
-  expect_equal(riposte_test(y ~ z | b, dat, statistic = "mi", nresample = 99,
+  for (abbrev in c("m", "mi", "ma", "quad"))
+    expect_error(riposte_test(y ~ z | b, dat, statistic = abbrev, nresample = 99),
+                 "spelled in full")
+  expect_equal(riposte_test(y ~ z | b, dat, statistic = "max", nresample = 99,
+                            seed = 5)$combination, "max")
+  expect_equal(riposte_test(y ~ z | b, dat, statistic = "minp", nresample = 99,
                             seed = 5)$combination, "minp")
+  ## the default is unchanged
+  expect_equal(riposte_test(y ~ z | b, dat, nresample = 99, seed = 5)$requested, "screen")
 })

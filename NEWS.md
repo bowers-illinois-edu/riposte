@@ -12,8 +12,9 @@
   `engine = "permute"`. Because each representation's most extreme
   re-randomization ties for the smallest mid-p value, its p-value cannot fall
   below about the number of representations divided by `nresample + 1`.
-* `statistic = "m"` still selects the max, as it did by partial matching
-  before `"minp"` was added; `"mi"` and longer abbreviations select min-p.
+* `riposte_test()` requires the full name of the statistic and stops with an
+  error on an abbreviation such as `"m"` or `"quad"`. Before `"minp"` was
+  added, `"m"` matched `"max"` by partial matching.
 
 # riposte 0.0.0.9008
 

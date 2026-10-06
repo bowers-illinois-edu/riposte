@@ -41,8 +41,8 @@ aggregated by \code{cluster_agg}), treatment is permuted over clusters within
 blocks, and the effective sample size is the number of clusters. Treatment
 must be constant within a cluster and clusters must nest within blocks.}
 
-\item{statistic}{which combination to use: \code{"screen"} (default), \code{"quadratic"},
-\code{"cauchy"}, \code{"max"}, \code{"minp"}, or \code{"hybrid"}. \code{"minp"} is single-step min-p:
+\item{statistic}{which combination to use, spelled in full: \code{"screen"}
+(default), \code{"quadratic"}, \code{"cauchy"}, \code{"max"}, \code{"minp"}, or \code{"hybrid"}. \code{"minp"} is single-step min-p:
 at every re-randomization it takes each representation's mid-p value and
 keeps the smallest, and its p-value is the share of re-randomizations whose
 smallest value is at most the observed one. It gives the same p-value as
