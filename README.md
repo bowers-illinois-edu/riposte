@@ -85,6 +85,21 @@ riposte_test(outcome ~ treated | block, data = d,
              statistic = "cauchy", engine = "asymptotic")
 ```
 
+To test with one representation alone, pass it as the only member of
+`representations`. With the raw outcome, every choice of `statistic` gives the
+same two-sided permutation test of the treated units' outcome sum, which has
+the same p-value as the difference in means within blocks:
+
+```r
+riposte_test(outcome ~ treated | block, data = d,
+             representations = list(raw = function(y) y), seed = 1)
+
+# one-sided: are treated outcomes higher?
+riposte_test(outcome ~ treated | block, data = d,
+             representations = list(raw = function(y) y),
+             statistic = "max", alternative = "greater", seed = 1)
+```
+
 Both engines support both designs and both combinations shown above. The
 asymptotic engine uses no random draws and ignores `nresample` and `seed`.
 It requires `statistic = "quadratic"` or `"cauchy"` and no covariance adjustment.

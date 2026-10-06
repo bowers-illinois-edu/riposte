@@ -149,6 +149,29 @@
 #' makes the sum undefined, which gives an error. This engine never switches
 #' silently to permutations.
 #'
+#' @examples
+#' set.seed(1)
+#' d <- data.frame(block = factor(rep(1:4, each = 10)),
+#'                 treated = rep(rep(0:1, each = 5), times = 4))
+#' d$outcome <- rnorm(40) + 0.8 * d$treated
+#'
+#' # the six default representations, combined by the screen
+#' riposte_test(outcome ~ treated | block, data = d, nresample = 499, seed = 1)
+#'
+#' # one representation, the raw outcome: every statistic then gives the same
+#' # permutation test, with the p-value of the difference in means within blocks
+#' raw <- list(raw = function(y) y)
+#' riposte_test(outcome ~ treated | block, data = d, representations = raw,
+#'              nresample = 499, seed = 1)
+#'
+#' # one-sided: are treated outcomes higher?
+#' riposte_test(outcome ~ treated | block, data = d, representations = raw,
+#'              statistic = "max", alternative = "greater", nresample = 499,
+#'              seed = 1)
+#'
+#' # single-step min-p across the six default representations
+#' riposte_test(outcome ~ treated | block, data = d, statistic = "minp",
+#'              nresample = 499, seed = 1)
 #' @references Gui, L., Jiang, Y., and Wang, J. (2025). Aggregating dependent
 #'   signals with heavy-tailed combination tests. *Biometrika*, 112(4),
 #'   asaf038. \doi{10.1093/biomet/asaf038}
