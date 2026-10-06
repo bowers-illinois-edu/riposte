@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9008</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9009</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,6 +34,13 @@
       <small>Source: <a href="https://github.com/bowers-illinois-edu/riposte/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.0.9009" id="riposte-0009009">riposte 0.0.0.9009<a class="anchor" aria-label="anchor" href="#riposte-0009009"></a></h2>
+<ul><li>
+<code>riposte_test(statistic = "minp")</code> computes single-step min-p: at every re-randomization it takes each representation’s mid-p value, the value the Cauchy and hybrid combinations use, and keeps the smallest. Its p-value is the share of re-randomizations whose smallest value is at most the observed one, exact in finite samples for any <code>nresample</code>. It gives the same p-value as the max when every representation’s statistic has the same null distribution, and a different one when a representation takes few values. It accepts a one-sided <code>alternative</code> and covariance adjustment, reports each representation’s observed mid-p value as <code>component_p</code>, and needs <code>engine = "permute"</code>. Because each representation’s most extreme re-randomization ties for the smallest mid-p value, its p-value cannot fall below about the number of representations divided by <code>nresample + 1</code>.</li>
+<li>
+<code><a href="../reference/riposte_test.html">riposte_test()</a></code> requires the full name of the statistic and stops with an error on an abbreviation such as <code>"m"</code> or <code>"quad"</code>. Before <code>"minp"</code> was added, <code>"m"</code> matched <code>"max"</code> by partial matching.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9008" id="riposte-0009008">riposte 0.0.0.9008<a class="anchor" aria-label="anchor" href="#riposte-0009008"></a></h2>
 <ul><li>The large-sample Cauchy combination (<code>engine = "asymptotic"</code>) now uses the truncated conversion of Gui, Jiang, and Wang (2025, Biometrika 112(4), asaf038): each p-value p becomes tan((0.5 - 0.9 p) pi), and with n p-values whose converted values sum to S the combined p-value is min(1, n P(Cauchy &gt; S) / 0.9). Liu and Xie’s conversion tan((0.5 - p) pi) sends p = 1 to minus infinity, so one representation whose treated sum equalled its mean set the combined p-value to 1; on Wallsten and Nteta’s 36-respondent comparison in the Sarkar and Coppock reanalysis it gave 1 where the difference in means gave 0.028, and it now gives 0.057. The new argument <code>cauchy_truncation</code> (default 0.9) sets the share kept; <code>1</code> restores the old behaviour. The new exported function <code><a href="../reference/riposte_truncated_cauchy.html">riposte_truncated_cauchy()</a></code> combines any vector of p-values this way.</li>

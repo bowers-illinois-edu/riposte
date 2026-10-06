@@ -1,5 +1,25 @@
 # Changelog
 
+## riposte 0.0.0.9009
+
+- `riposte_test(statistic = "minp")` computes single-step min-p: at
+  every re-randomization it takes each representation’s mid-p value, the
+  value the Cauchy and hybrid combinations use, and keeps the smallest.
+  Its p-value is the share of re-randomizations whose smallest value is
+  at most the observed one, exact in finite samples for any `nresample`.
+  It gives the same p-value as the max when every representation’s
+  statistic has the same null distribution, and a different one when a
+  representation takes few values. It accepts a one-sided `alternative`
+  and covariance adjustment, reports each representation’s observed
+  mid-p value as `component_p`, and needs `engine = "permute"`. Because
+  each representation’s most extreme re-randomization ties for the
+  smallest mid-p value, its p-value cannot fall below about the number
+  of representations divided by `nresample + 1`.
+- [`riposte_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_test.md)
+  requires the full name of the statistic and stops with an error on an
+  abbreviation such as `"m"` or `"quad"`. Before `"minp"` was added,
+  `"m"` matched `"max"` by partial matching.
+
 ## riposte 0.0.0.9008
 
 - The large-sample Cauchy combination (`engine = "asymptotic"`) now uses

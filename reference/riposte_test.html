@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9008</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9009</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,7 +46,7 @@
 <span>  <span class="va">data</span>,</span>
 <span>  blocks <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  clusters <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  statistic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"screen"</span>, <span class="st">"quadratic"</span>, <span class="st">"cauchy"</span>, <span class="st">"max"</span>, <span class="st">"hybrid"</span><span class="op">)</span>,</span>
+<span>  statistic <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"screen"</span>, <span class="st">"quadratic"</span>, <span class="st">"cauchy"</span>, <span class="st">"max"</span>, <span class="st">"minp"</span>, <span class="st">"hybrid"</span><span class="op">)</span>,</span>
 <span>  representations <span class="op">=</span> <span class="fu"><a href="riposte_reps_default.html">riposte_reps_default</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  nresample <span class="op">=</span> <span class="fl">1999L</span>,</span>
 <span>  screen <span class="op">=</span> <span class="fu"><a href="riposte_screen_control.html">riposte_screen_control</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -91,11 +91,21 @@ must be constant within a cluster and clusters must nest within blocks.</p></dd>
 
 
 <dt id="arg-statistic">statistic<a class="anchor" aria-label="anchor" href="#arg-statistic"></a></dt>
-<dd><p>which combination to use: <code>"screen"</code> (default), <code>"quadratic"</code>,
-<code>"cauchy"</code>, <code>"max"</code>, or <code>"hybrid"</code>. The hybrid is the Cauchy combination of
-each representation's own p-value and the quadratic's p-value, all with equal
-weight (seven p-values for the default six representations). With a one-sided
-<code>alternative</code>, only <code>"max"</code> (the default then) and <code>"cauchy"</code> are available.</p></dd>
+<dd><p>which combination to use, spelled in full: <code>"screen"</code>
+(default), <code>"quadratic"</code>, <code>"cauchy"</code>, <code>"max"</code>, <code>"minp"</code>, or <code>"hybrid"</code>. <code>"minp"</code> is single-step min-p:
+at every re-randomization it takes each representation's mid-p value and
+keeps the smallest, and its p-value is the share of re-randomizations whose
+smallest value is at most the observed one. It gives the same p-value as
+<code>"max"</code> when every representation's statistic has the same null
+distribution, and differs when one takes few values. Each representation's
+most extreme re-randomization ties for the smallest mid-p value, so the
+min-p p-value cannot fall below about the number of representations
+divided by <code>nresample + 1</code>: 0.003 for the default six with 1999
+re-randomizations, but 0.12 with 49. The hybrid is the Cauchy
+combination of each representation's own p-value and the quadratic's p-value,
+all with equal weight (seven p-values for the default six representations).
+With a one-sided <code>alternative</code>, only <code>"max"</code> (the default then), <code>"minp"</code>, and
+<code>"cauchy"</code> are available.</p></dd>
 
 
 <dt id="arg-representations">representations<a class="anchor" aria-label="anchor" href="#arg-representations"></a></dt>
@@ -213,6 +223,7 @@ and the p-value uses the stated approximation, not a permutation count.
 Cauchy results from this engine also include <code>component_p</code>, the individual
 chi-square p-values, and hybrid results add the quadratic's. With
 <code>engine = "permute"</code>, hybrid results include <code>component_p</code>, the seven
+observed mid-p values, and min-p results include the representations'
 observed mid-p values.</p>
     </div>
     <div class="section level2">
@@ -252,6 +263,51 @@ signals with heavy-tailed combination tests. <em>Biometrika</em>, 112(4),
 asaf038. <a href="https://doi.org/10.1093/biomet/asaf038" class="external-link">doi:10.1093/biomet/asaf038</a></p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>block <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, each <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>                treated <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">1</span>, each <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>, times <span class="op">=</span> <span class="fl">4</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">d</span><span class="op">$</span><span class="va">outcome</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">40</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.8</span> <span class="op">*</span> <span class="va">d</span><span class="op">$</span><span class="va">treated</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># the six default representations, combined by the screen</span></span></span>
+<span class="r-in"><span><span class="fu">riposte_test</span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">treated</span> <span class="op">|</span> <span class="va">block</span>, data <span class="op">=</span> <span class="va">d</span>, nresample <span class="op">=</span> <span class="fl">499</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> riposte test of the sharp null of no effect</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   40 units in 4 blocks; 499 re-randomizations</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   screen (shrink, lambda = 0.008); condition number 130.6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   combination: quadratic</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   statistic = 7.8875,  p-value = 0.2280</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># one representation, the raw outcome: every statistic then gives the same</span></span></span>
+<span class="r-in"><span><span class="co"># permutation test, with the p-value of the difference in means within blocks</span></span></span>
+<span class="r-in"><span><span class="va">raw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>raw <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="va">y</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">riposte_test</span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">treated</span> <span class="op">|</span> <span class="va">block</span>, data <span class="op">=</span> <span class="va">d</span>, representations <span class="op">=</span> <span class="va">raw</span>,</span></span>
+<span class="r-in"><span>             nresample <span class="op">=</span> <span class="fl">499</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> riposte test of the sharp null of no effect</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   40 units in 4 blocks; 499 re-randomizations</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   screen (shrink, lambda = 0.000); condition number 1.0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   combination: quadratic</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   statistic = 6.8595,  p-value = 0.0080</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># one-sided: are treated outcomes higher?</span></span></span>
+<span class="r-in"><span><span class="fu">riposte_test</span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">treated</span> <span class="op">|</span> <span class="va">block</span>, data <span class="op">=</span> <span class="va">d</span>, representations <span class="op">=</span> <span class="va">raw</span>,</span></span>
+<span class="r-in"><span>             statistic <span class="op">=</span> <span class="st">"max"</span>, alternative <span class="op">=</span> <span class="st">"greater"</span>, nresample <span class="op">=</span> <span class="fl">499</span>,</span></span>
+<span class="r-in"><span>             seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> riposte test of the sharp null of no effect</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   40 units in 4 blocks; 499 re-randomizations</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   combination: max</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   alternative: greater (treated-score sums above their re-randomization mean)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   statistic = 2.6191,  p-value = 0.0040</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># single-step min-p across the six default representations</span></span></span>
+<span class="r-in"><span><span class="fu">riposte_test</span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">treated</span> <span class="op">|</span> <span class="va">block</span>, data <span class="op">=</span> <span class="va">d</span>, statistic <span class="op">=</span> <span class="st">"minp"</span>,</span></span>
+<span class="r-in"><span>             nresample <span class="op">=</span> <span class="fl">499</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> riposte test of the sharp null of no effect</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   40 units in 4 blocks; 499 re-randomizations</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   combination: minp</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   statistic = 0.0070,  p-value = 0.0360</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

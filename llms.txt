@@ -37,7 +37,10 @@ transform — and combines the evidence each carries:
   permutation covariance of the representations;
 - a **Cauchy** combination that uses only each representation’s marginal
   calibration; and
-- a **max** combination.
+- a **max** combination, the largest standardized representation; and
+- a **min-p** combination (`statistic = "minp"`), the smallest of the
+  representations’ mid-p values, which equals the max when every
+  representation’s statistic has the same null distribution.
 
 A **screen** chooses between the quadratic and the Cauchy from the
 conditioning of the permutation covariance — an ancillary quantity (a
@@ -82,10 +85,31 @@ riposte_test(outcome ~ treated | block, data = d,
              statistic = "cauchy", engine = "asymptotic")
 ```
 
+To test with one representation alone, pass it as the only member of
+`representations`. With the raw outcome, every choice of `statistic`
+gives the same two-sided permutation test of the treated units’ outcome
+sum, which has the same p-value as the difference in means within
+blocks:
+
+``` r
+
+riposte_test(outcome ~ treated | block, data = d,
+             representations = list(raw = function(y) y), seed = 1)
+
+# one-sided: are treated outcomes higher?
+riposte_test(outcome ~ treated | block, data = d,
+             representations = list(raw = function(y) y),
+             statistic = "max", alternative = "greater", seed = 1)
+```
+
+On these data, where treatment changes the spread and not the mean, the
+raw outcome alone gives p = 0.53 two-sided, while the blocked Cauchy
+combination of all six representations above gives p = 0.004.
+
 Both engines support both designs and both combinations shown above. The
 asymptotic engine uses no random draws and ignores `nresample` and
 `seed`. It requires `statistic = "quadratic"` or `"cauchy"` and no
-covariance adjustment. The default screen and the max test remain
+covariance adjustment. The default screen, the max, and min-p remain
 available with the permutation engine. `coin` is used for comparison
 tests, not required to run these approximations.
 [`riposte_components()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_components.md)

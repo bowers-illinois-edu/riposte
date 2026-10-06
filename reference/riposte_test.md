@@ -10,7 +10,7 @@ riposte_test(
   data,
   blocks = NULL,
   clusters = NULL,
-  statistic = c("screen", "quadratic", "cauchy", "max", "hybrid"),
+  statistic = c("screen", "quadratic", "cauchy", "max", "minp", "hybrid"),
   representations = riposte_reps_default(),
   nresample = 1999L,
   screen = riposte_screen_control(),
@@ -56,12 +56,22 @@ riposte_test(
 
 - statistic:
 
-  which combination to use: `"screen"` (default), `"quadratic"`,
-  `"cauchy"`, `"max"`, or `"hybrid"`. The hybrid is the Cauchy
+  which combination to use, spelled in full: `"screen"` (default),
+  `"quadratic"`, `"cauchy"`, `"max"`, `"minp"`, or `"hybrid"`. `"minp"`
+  is single-step min-p: at every re-randomization it takes each
+  representation's mid-p value and keeps the smallest, and its p-value
+  is the share of re-randomizations whose smallest value is at most the
+  observed one. It gives the same p-value as `"max"` when every
+  representation's statistic has the same null distribution, and differs
+  when one takes few values. Each representation's most extreme
+  re-randomization ties for the smallest mid-p value, so the min-p
+  p-value cannot fall below about the number of representations divided
+  by `nresample + 1`: 0.003 for the default six with 1999
+  re-randomizations, but 0.12 with 49. The hybrid is the Cauchy
   combination of each representation's own p-value and the quadratic's
   p-value, all with equal weight (seven p-values for the default six
   representations). With a one-sided `alternative`, only `"max"` (the
-  default then) and `"cauchy"` are available.
+  default then), `"minp"`, and `"cauchy"` are available.
 
 - representations:
 
@@ -188,7 +198,8 @@ number are exact, not Monte-Carlo. With `engine = "asymptotic"`,
 permutation count. Cauchy results from this engine also include
 `component_p`, the individual chi-square p-values, and hybrid results
 add the quadratic's. With `engine = "permute"`, hybrid results include
-`component_p`, the seven observed mid-p values.
+`component_p`, the seven observed mid-p values, and min-p results
+include the representations' observed mid-p values.
 
 ## Details
 
@@ -229,3 +240,49 @@ permutations.
 Gui, L., Jiang, Y., and Wang, J. (2025). Aggregating dependent signals
 with heavy-tailed combination tests. *Biometrika*, 112(4), asaf038.
 [doi:10.1093/biomet/asaf038](https://doi.org/10.1093/biomet/asaf038)
+
+## Examples
+
+``` r
+set.seed(1)
+d <- data.frame(block = factor(rep(1:4, each = 10)),
+                treated = rep(rep(0:1, each = 5), times = 4))
+d$outcome <- rnorm(40) + 0.8 * d$treated
+
+# the six default representations, combined by the screen
+riposte_test(outcome ~ treated | block, data = d, nresample = 499, seed = 1)
+#> riposte test of the sharp null of no effect
+#>   40 units in 4 blocks; 499 re-randomizations
+#>   screen (shrink, lambda = 0.008); condition number 130.6
+#>   combination: quadratic
+#>   statistic = 7.8875,  p-value = 0.2280
+
+# one representation, the raw outcome: every statistic then gives the same
+# permutation test, with the p-value of the difference in means within blocks
+raw <- list(raw = function(y) y)
+riposte_test(outcome ~ treated | block, data = d, representations = raw,
+             nresample = 499, seed = 1)
+#> riposte test of the sharp null of no effect
+#>   40 units in 4 blocks; 499 re-randomizations
+#>   screen (shrink, lambda = 0.000); condition number 1.0
+#>   combination: quadratic
+#>   statistic = 6.8595,  p-value = 0.0080
+
+# one-sided: are treated outcomes higher?
+riposte_test(outcome ~ treated | block, data = d, representations = raw,
+             statistic = "max", alternative = "greater", nresample = 499,
+             seed = 1)
+#> riposte test of the sharp null of no effect
+#>   40 units in 4 blocks; 499 re-randomizations
+#>   combination: max
+#>   alternative: greater (treated-score sums above their re-randomization mean)
+#>   statistic = 2.6191,  p-value = 0.0040
+
+# single-step min-p across the six default representations
+riposte_test(outcome ~ treated | block, data = d, statistic = "minp",
+             nresample = 499, seed = 1)
+#> riposte test of the sharp null of no effect
+#>   40 units in 4 blocks; 499 re-randomizations
+#>   combination: minp
+#>   statistic = 0.0070,  p-value = 0.0360
+```
