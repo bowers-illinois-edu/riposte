@@ -40,7 +40,10 @@ combines the evidence each carries:
   covariance of the representations;
 - a **Cauchy** combination that uses only each representation's marginal
   calibration; and
-- a **max** combination.
+- a **max** combination, the largest standardized representation; and
+- a **min-p** combination (`statistic = "minp"`), the smallest of the
+  representations' mid-p values, which equals the max when every
+  representation's statistic has the same null distribution.
 
 A **screen** chooses between the quadratic and the Cauchy from the conditioning
 of the permutation covariance --- an ancillary quantity (a function of the
@@ -85,7 +88,7 @@ riposte_test(outcome ~ treated | block, data = d,
 Both engines support both designs and both combinations shown above. The
 asymptotic engine uses no random draws and ignores `nresample` and `seed`.
 It requires `statistic = "quadratic"` or `"cauchy"` and no covariance adjustment.
-The default screen and the max test remain available with the permutation
+The default screen, the max, and min-p remain available with the permutation
 engine. `coin` is used for comparison tests, not required to run these
 approximations. `riposte_components()` continues to report permutation mid-p
 values, even when used alongside an asymptotic combined test.

@@ -9,7 +9,7 @@ riposte_test(
   data,
   blocks = NULL,
   clusters = NULL,
-  statistic = c("screen", "quadratic", "cauchy", "max", "hybrid"),
+  statistic = c("screen", "quadratic", "cauchy", "max", "minp", "hybrid"),
   representations = riposte_reps_default(),
   nresample = 1999L,
   screen = riposte_screen_control(),
@@ -42,10 +42,20 @@ blocks, and the effective sample size is the number of clusters. Treatment
 must be constant within a cluster and clusters must nest within blocks.}
 
 \item{statistic}{which combination to use: \code{"screen"} (default), \code{"quadratic"},
-\code{"cauchy"}, \code{"max"}, or \code{"hybrid"}. The hybrid is the Cauchy combination of
-each representation's own p-value and the quadratic's p-value, all with equal
-weight (seven p-values for the default six representations). With a one-sided
-\code{alternative}, only \code{"max"} (the default then) and \code{"cauchy"} are available.}
+\code{"cauchy"}, \code{"max"}, \code{"minp"}, or \code{"hybrid"}. \code{"minp"} is single-step min-p:
+at every re-randomization it takes each representation's mid-p value and
+keeps the smallest, and its p-value is the share of re-randomizations whose
+smallest value is at most the observed one. It gives the same p-value as
+\code{"max"} when every representation's statistic has the same null
+distribution, and differs when one takes few values. Each representation's
+most extreme re-randomization ties for the smallest mid-p value, so the
+min-p p-value cannot fall below about the number of representations
+divided by \code{nresample + 1}: 0.003 for the default six with 1999
+re-randomizations, but 0.12 with 49. The hybrid is the Cauchy
+combination of each representation's own p-value and the quadratic's p-value,
+all with equal weight (seven p-values for the default six representations).
+With a one-sided \code{alternative}, only \code{"max"} (the default then), \code{"minp"}, and
+\code{"cauchy"} are available.}
 
 \item{representations}{a named list of representation functions;
 \code{\link[=riposte_reps_default]{riposte_reps_default()}} by default. Supply your own to combine a different
@@ -137,6 +147,7 @@ and the p-value uses the stated approximation, not a permutation count.
 Cauchy results from this engine also include \code{component_p}, the individual
 chi-square p-values, and hybrid results add the quadratic's. With
 \code{engine = "permute"}, hybrid results include \code{component_p}, the seven
+observed mid-p values, and min-p results include the representations'
 observed mid-p values.
 }
 \description{

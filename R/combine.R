@@ -15,11 +15,16 @@
 ##              calibration, ignores the covariance. Mid-p keeps the transform off
 ##              its poles --- no clamp, no probit.
 ##   max        the largest standardized representation; a third comparison.
+##   minp       the smallest of the representations' mid-p values (single-step
+##              min-p). It equals the max when every representation's statistic
+##              has the same null distribution, and differs when one takes few
+##              values: a standardized value common for that representation is
+##              then compared on its own p-value, not as if it were rare.
 ##   hybrid     the Cauchy average of the representations' two-sided mid-p
 ##              values and the quadratic's mid-p value, seven terms with equal
 ##              weight for the default six representations.
 ##
-## The Cauchy and the max also take a one-sided alternative. "greater" counts
+## The Cauchy, the max, and min-p also take a one-sided alternative. "greater" counts
 ## only treated-score sums above their permutation mean, "less" only sums below
 ## it: the Cauchy averages the transforms of one-sided mid-p values, and the max
 ## takes the largest standardized sum in the named direction. The quadratic
@@ -74,6 +79,24 @@ riposte_hybrid_from_T <- function(Tmat, mu, Sigma) {
   h <- rowMeans(riposte_acat_term(P))
   list(statistic = unname(h[1]), p.value = riposte_perm_pvalue(h), df = inv$rank,
        component_p = stats::setNames(P[1, ], colnames(P)))
+}
+
+riposte_minp_from_T <- function(Tmat, alternative = "two.sided") {
+  ## Single-step min-p referred to the randomization distribution. Each
+  ## representation's mid-p value at each assignment is computed against all the
+  ## assignments, observed included, so the set of smallest values is the same
+  ## whichever assignment was observed; under the sharp null the observed
+  ## smallest value is then equally likely to hold any rank in that set, and the
+  ## share at most as small as observed is an exact p-value. Mid-p values match
+  ## the Cauchy and the hybrid, so component_p means the same in all three.
+  P <- apply(Tmat, 2, riposte_midp, alternative = alternative)
+  P <- matrix(P, nrow = nrow(Tmat), dimnames = list(NULL, colnames(Tmat)))
+  smallest <- apply(P, 1, min)
+  ## riposte_perm_pvalue() counts values at least as large as the observed one,
+  ## so negate: a smaller smallest mid-p value is more extreme
+  list(statistic = unname(smallest[1]), p.value = riposte_perm_pvalue(-smallest),
+       which = colnames(Tmat)[which.min(P[1, ])],
+       component_p = stats::setNames(P[1, ], colnames(Tmat)))
 }
 
 riposte_max_from_T <- function(Tmat, mu, sdv, alternative = "two.sided") {
@@ -161,4 +184,27 @@ riposte_max <- function(scores, z, block, moments = NULL, draws = NULL,
   moments <- moments %||% riposte_sw_moments(scores, z, block)
   Tmat <- riposte_perm_stats(scores, z, block, nresample, draws)$stats
   riposte_max_from_T(Tmat, moments$mu, sqrt(diag(moments$Sigma)), alternative)
+}
+
+#' Single-step min-p combination (smallest representation mid-p value)
+#'
+#' @inheritParams riposte_quadratic
+#' @param alternative `"two.sided"`, `"greater"`, or `"less"`: the direction of
+#'   each representation's mid-p value.
+#' @return a list with the observed `statistic` (the smallest mid-p value), its
+#'   permutation `p.value`, `which` (the representation giving the observed
+#'   smallest value), and `component_p` (each representation's observed mid-p
+#'   value).
+#' @keywords internal
+#' @noRd
+riposte_minp <- function(scores, z, block, moments = NULL, draws = NULL,
+                         nresample = 1999L, alternative = "two.sided") {
+  ## moments are accepted so callers can treat minp like the max; min-p needs
+  ## only the statistics at each assignment
+  scores <- as.matrix(scores)
+  if (ncol(scores) == 0L)
+    return(list(statistic = NA_real_, p.value = NA_real_, which = NA_character_,
+                component_p = numeric(0)))
+  Tmat <- riposte_perm_stats(scores, z, block, nresample, draws)$stats
+  riposte_minp_from_T(Tmat, alternative)
 }

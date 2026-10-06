@@ -106,6 +106,19 @@ test_that("the adjusted quadratic, max, and screen hold the level under the null
   }
 })
 
+test_that("the adjusted min-p holds the level under the null", {
+  skip_on_cran()
+  RNGkind("L'Ecuyer-CMRG"); set.seed(20261005)
+  ## Min-p needs more re-randomizations than the other combinations to reach
+  ## 0.05 at all: each representation's most extreme re-randomization ties for
+  ## the smallest mid-p value, so with K representations min-p's p-value cannot
+  ## fall below about K / (nresample + 1). At nresample = 49 that floor is 0.10
+  ## for the default six, and min-p never rejects; at 199 it is 0.03.
+  rate <- adj_size_combo(200L, "minp", nres = 199L)
+  expect_lt(rate, 0.10)
+  expect_gt(rate, 0.015)
+})
+
 test_that("the adjusted quadratic is exact under full enumeration (pooled moments)", {
   skip_on_cran()
   RNGkind("L'Ecuyer-CMRG"); set.seed(20260626)
