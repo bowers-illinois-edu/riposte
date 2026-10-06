@@ -165,6 +165,9 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
                         alternative = c("two.sided", "greater", "less"),
                         cauchy_truncation = 0.9, ...) {
   statistic_given <- !missing(statistic)
+  ## "m" matched "max" by partial matching before "minp" was added; keep it
+  ## meaning "max" so earlier calls run unchanged
+  if (identical(statistic, "m")) statistic <- "max"
   statistic <- match.arg(statistic)
   engine <- match.arg(engine)
   alternative <- match.arg(alternative)

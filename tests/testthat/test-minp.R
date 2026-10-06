@@ -279,3 +279,17 @@ test_that("the large-sample and saddlepoint engines refuse min-p", {
   expect_error(riposte_test(y ~ z | b, dat, statistic = "minp", engine = "saddlepoint"),
                "minp|min-p")
 })
+
+test_that("the abbreviation 'm' still means the max", {
+  ## Before min-p existed, statistic = "m" matched "max" by partial matching.
+  ## "minp" also starts with "m", so riposte_test() resolves "m" to "max"
+  ## explicitly to keep earlier calls working; "mi" and longer abbreviations
+  ## of "minp" select min-p.
+  dat <- minp_design(5)
+  res_m <- riposte_test(y ~ z | b, dat, statistic = "m", nresample = 99, seed = 5)
+  res_max <- riposte_test(y ~ z | b, dat, statistic = "max", nresample = 99, seed = 5)
+  expect_equal(res_m$combination, "max")
+  expect_equal(res_m$p.value, res_max$p.value)
+  expect_equal(riposte_test(y ~ z | b, dat, statistic = "mi", nresample = 99,
+                            seed = 5)$combination, "minp")
+})
