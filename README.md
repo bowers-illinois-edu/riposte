@@ -100,6 +100,10 @@ riposte_test(outcome ~ treated | block, data = d,
              statistic = "max", alternative = "greater", seed = 1)
 ```
 
+On these data, where treatment changes the spread and not the mean, the raw
+outcome alone gives p = 0.53 two-sided, while the blocked Cauchy combination
+of all six representations above gives p = 0.004.
+
 Both engines support both designs and both combinations shown above. The
 asymptotic engine uses no random draws and ignores `nresample` and `seed`.
 It requires `statistic = "quadratic"` or `"cauchy"` and no covariance adjustment.
