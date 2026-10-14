@@ -114,10 +114,20 @@ riposte_pairs_bound <- function(y, H, gamma = 1, algorithm = NULL) {
   cv <- theta * (1 - theta) * crossprod(H)
   dev <- (st - ex) / sqrt(diag(cv))
   cr <- stats::cov2cor(cv)
+  # a statistic that is a perfect copy of an earlier one (this happens with few pairs)
+  # adds nothing to the maximum but makes the correlation matrix singular, which Miwa
+  # cannot handle; leave the copies out of the probabiliy (the maximum itself is unchanged)
+  dup <- vapply(seq_len(k), function(j) any(abs(cr[j, seq_len(j - 1L)] - 1) < 1e-10),
+                logical(1))
+  crk <- cr[!dup, !dup, drop = FALSE]
+  kk <- ncol(crk)
   if (is.null(algorithm))
-    algorithm <- if (k <= 5) mvtnorm::Miwa(steps = 512) else mvtnorm::GenzBretz()
-  p <- 1 - mvtnorm::pmvnorm(lower = rep(-Inf, k), upper = rep(max(dev), k),
-                            corr = cr, algorithm = algorithm)[[1]]
+    algorithm <- if (kk <= 5 && kk > 1 &&
+                     min(eigen(crk, symmetric = TRUE, only.values = TRUE)$values) > 1e-8)
+      mvtnorm::Miwa(steps = 512) else mvtnorm::GenzBretz()
+  p <- if (kk == 1L) 1 - stats::pnorm(max(dev)) else
+    1 - mvtnorm::pmvnorm(lower = rep(-Inf, kk), upper = rep(max(dev), kk),
+                         corr = crk, algorithm = algorithm)[[1]]
   names(dev) <- nm; dimnames(cr) <- list(nm, nm)
   list(p.value = p, deviates = dev, cor = cr)
 }
