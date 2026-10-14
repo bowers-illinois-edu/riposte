@@ -1,3 +1,38 @@
+# riposte 0.0.0.9010
+
+* `riposte_test()` runs the matched-pair tests of Rosenbaum (2012), "Testing one
+  hypothesis twice" (Biometrika 99:763-774) and "An exact adaptive test with superior
+  design sensitivity" (Annals of Applied Statistics 6:83-105). A matched pair is a
+  block of two units with one treated. Giving `gamma` (the sensitivity parameter,
+  at least 1) or 
+  `statistic = "adaptive"` switches to these tests, which are one-sided:
+  `alternative = "two.sided"`, the default, is read as `"greater"`, and asking for
+  it explicitly is an error. They need matched pairs and do not support `clusters`,
+  `adjust`, or `engine = "saddlepoint"`. 
+* With `gamma` the statistic is `"max"` by defult: the largest of the standardized
+  pair statistics (Wilcoxon, Brown, Noether, and the U-statistics (8, 7, 8) and
+  (8, 6, 7), from `riposte_pair_reps()`). At `gamma = 1` with the default engine
+  it is referred to random sign flips, and to every sign pattern when there are 16
+  or fewer nonzero pairs and `nresample` is at least 2^pairs, so the p-value is exact.
+  Otherwise (`gamma > 1` or `engine = "asymptotic"`) it is the multivariate normal 
+  bound of the paper, an upper bound on the p-value computed with `mvtnorm`, now
+  in Suggests. Statistics that are exact copies of each other, as happens with few
+  pairs, count once in that probability. 
+* `statistic = "adaptive"` is the exact adaptive test: it rejects when Noether's 
+  B1 or Brown's T = 2 B1 + B2 reaches its critical value, with the two values 
+  chosen by conditions (4) to (6) of the paper. The reported p-value is the smallest
+  level at which the test rejects. 
+* The pair statistics are Strasser-Weber linear statistics: the better-off unit of
+  each pair gets the score and the other gets zero. So `riposte_components()`, 
+  the closed-form moments and the other combinations work on them. They need the
+  ranks of the absolute differences across all pairs, so a representation of class
+  `riposte_pooled_rep` takes `(y, block)` rather than one block's outcomes. 
+* New tests reproduce the 12 single-statistic analyses of Table 2 and the combined
+  analyses of Table 3 of the Biometrika paper to the printed three decimals, and
+  the critical values of the Annals paper's worked examples. They check the sign-flip
+  p-value against enumeration of all sign patterns, the adaptive test's size agains
+  enumeration, and the normal bound against the `testtwice` package (Suggests). 
+  
 # riposte 0.0.0.9009
 
 * `riposte_test(statistic = "minp")` computes single-step min-p: at every
