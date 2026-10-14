@@ -26,7 +26,6 @@ Description: Tests of the sharp null of no treatment effects that combine severa
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 8.0.0
 Depends:
     R (>= 4.1.0)
 Imports:
@@ -41,7 +40,9 @@ Suggests:
     knitr,
     rmarkdown,
     covr,
-    pkgdown
+    pkgdown,
+    mvtnorm,
+    testtwice
 Remotes:
     bowers-illinois-edu/fastperm,
     bowers-illinois-edu/CMRSS
@@ -50,3 +51,4 @@ Config/Needs/website: pkgdown
 VignetteBuilder: knitr
 URL: https://github.com/bowers-illinois-edu/riposte, https://bowers-illinois-edu.github.io/riposte/
 BugReports: https://github.com/bowers-illinois-edu/riposte/issues
+Config/roxygen2/version: 8.1.0
