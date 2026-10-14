@@ -71,6 +71,13 @@ riposte_centred_scores <- function(y, block, representations = riposte_reps_defa
   ## apply one representation across all blocks, returning a length-n vector in
   ## the original row order; check the function returns the right length per block
   apply_rep <- function(f, nm) {
+    if (inherits(f, "riposte_pooled_rep")) {
+      val <- f(y, block)
+      if (length(val) != n)
+        stop(sprintf("representation '%s' returned length %d for %d units.", nm,
+                     length(val), n), call. = FALSE)
+      return(as.numeric(val))
+    }
     out <- numeric(n)
     for (ix in idx_list) {
       val <- f(y[ix])
