@@ -164,6 +164,15 @@
 #' makes the sum undefined, which gives an error. This engine never switches
 #' silently to permutations.
 #'
+#' With `gamma` or `statistic = "adaptive"`, `riposte_test()` runs the matched-pair
+#' tests of Rosenbaum (2012a, 2012b) instead of the block tests above. At `gamma = 1`
+#' they test the sharp null of no effect; for `gamma > 1` they bound the p-value under
+#' a hidden bias that could change each pair's chance of treatment by the factor
+#' `gamma`. They follow the `testtwice` package, which the tests check against,
+#' and Tables 2 and 3 of the Biometrika paper, which they reproduce.
+#' See [riposte_pair_reps()] for the statistics and [riposte_adaptive_test()] for the
+#' adaptive test.
+#'
 #' @examples
 #' set.seed(1)
 #' d <- data.frame(block = factor(rep(1:4, each = 10)),
@@ -187,9 +196,31 @@
 #' # single-step min-p across the six default representations
 #' riposte_test(outcome ~ treated | block, data = d, statistic = "minp",
 #'              nresample = 499, seed = 1)
+#'
+#' # matched pairs: Rosenbaums (2012) tests. A pair is a block of two units with
+#' # one treated. gamma = 1 tests the sharp null by random sign flips (one-sided)
+#' set.seed(2)
+#' pairs <- data.frame(pair = rep(1:30, each = 2), treated = rep(c(1,0), 30))
+#' pairs$outcome <- rnorm(60) + 0.5 * pairs$treated
+#' riposte_test(outcome ~ treated | pair, data = pairs, gamma = 1, nresample = 999, seed = 1)
+#'
+#' # the same pairs under hidden bias of size 1.5: an upper bound on the p-value
+#' # (the normal bound needs the mvtnorm package)
+#' if (requireNamespace("mvtnorm", quietly = TRUE)) {
+#'   riposte_test(outcome ~ treated | pair, data = pairs, gamma = 1.5, engine = "asymptotic")
+#'   # the exact adaptive test (Brown and Noether)
+#'   riposte_test(outcome ~ treated | pair, data = pairs, statistic = "adaptive", gamma = 1.5)
+#' }
 #' @references Gui, L., Jiang, Y., and Wang, J. (2025). Aggregating dependent
 #'   signals with heavy-tailed combination tests. *Biometrika*, 112(4),
 #'   asaf038. \doi{10.1093/biomet/asaf038}
+#'
+#'   Rosenbaum, P.R. (2012a). Testing one hypothesis twice in observational studies.
+#'   *Biometrika*, 99(4), 763-774. \doi{10.1093/biomet/ass032}
+#'
+#'   Rosenbaum, P.R. (2012b). An exact adaptive test with superior design sensitivity
+#'   in an observational study of treatments for ovarian cancer. *Annals of Applied
+#'   Statistics*, 6(1), 83-105. \doi{10.1214/11-AOAS508}
 #' @export
 riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
                         statistic = c("screen", "quadratic", "cauchy", "max", "minp",
