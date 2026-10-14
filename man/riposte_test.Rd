@@ -9,7 +9,7 @@ riposte_test(
   data,
   blocks = NULL,
   clusters = NULL,
-  statistic = c("screen", "quadratic", "cauchy", "max", "minp", "hybrid"),
+  statistic = c("screen", "quadratic", "cauchy", "max", "minp", "hybrid", "adaptive"),
   representations = riposte_reps_default(),
   nresample = 1999L,
   screen = riposte_screen_control(),
@@ -19,6 +19,8 @@ riposte_test(
   cluster_agg = mean,
   seed = NULL,
   engine = c("permute", "saddlepoint", "asymptotic"),
+  gamma = NULL,
+  alpha = 0.05,
   alternative = c("two.sided", "greater", "less"),
   cauchy_truncation = 0.9,
   ...
@@ -42,7 +44,8 @@ blocks, and the effective sample size is the number of clusters. Treatment
 must be constant within a cluster and clusters must nest within blocks.}
 
 \item{statistic}{which combination to use, spelled in full: \code{"screen"}
-(default), \code{"quadratic"}, \code{"cauchy"}, \code{"max"}, \code{"minp"}, or \code{"hybrid"}. \code{"minp"} is single-step min-p:
+(default), \code{"quadratic"}, \code{"cauchy"}, \code{"max"}, \code{"minp"}, \code{"hybrid"}, or
+\code{"adaptive"}. \code{"minp"} is single-step min-p:
 at every re-randomization it takes each representation's mid-p value and
 keeps the smallest, and its p-value is the share of re-randomizations whose
 smallest value is at most the observed one. It gives the same p-value as
@@ -111,6 +114,19 @@ rank-deficient metric). It is an approximation, supports \code{statistic} other 
 \code{"max"} without \code{adjust}, and requires the \code{fastperm} package (the quadratic
 needs a \code{fastperm} with \code{fastperm_spa_quadratic}).}
 
+\item{gamma}{optional sensitivity parameter (\verb{>=1}) for Rosenbaum's (2012)
+matched-pair tests. Giving \code{gamma} switches to those tests: the design must
+be matched pairs (blocks of two, one treated), the test is one-sided, and
+\code{representations} defaults to \code{\link[=riposte_pair_reps]{riposte_pair_reps()}}. With \code{statistic = "max"}
+this is "testing one hypothesis twice" (Biometrika 2012): the maximum of the
+standardized pair statistics. \code{gamma = 1} is the randomization test of the
+sharp null (random sign flips with \code{engine = "permute"}, the multivariate
+normal bound with \code{engine = "asymptotic"}); \code{gamma > 1} bounds the p-value
+under hidden bias of that size (normal approximation).}
+
+\item{alpha}{level for that adaptive test's critical values. The reported
+p-value is the smallest level at which it rejects.}
+
 \item{alternative}{\code{"two.sided"} (default) counts evidence in either
 direction. \code{"greater"} counts only treated-score sums above their
 re-randomization mean, and \code{"less"} only sums below it. For scores that rise
@@ -120,7 +136,10 @@ which is how to look for harm. The distance representations do not rise
 with the outcome, so a one-sided test of them asks instead whether treated
 units sit closer to (\code{"less"}) or farther from (\code{"greater"}) the rest of
 their block. Every alternative tests the same sharp null hypothesis of no
-effect; see Details.}
+effect; see Details.
+With \code{gamma}, or with \code{statistic = "adaptive"} (Rosenbaum's matched-pair
+tests), the test is one-sided: the default \code{"two.sided"} is read as \code{"greater"},
+and an explicit \code{"two.sided"} is an error.}
 
 \item{cauchy_truncation}{the share \eqn{t} of the Cauchy distribution kept by
 the large-sample Cauchy combination and hybrid, in (0, 1]; 0.9 by default.

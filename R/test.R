@@ -24,7 +24,8 @@
 #'   blocks, and the effective sample size is the number of clusters. Treatment
 #'   must be constant within a cluster and clusters must nest within blocks.
 #' @param statistic which combination to use, spelled in full: `"screen"`
-#'   (default), `"quadratic"`, `"cauchy"`, `"max"`, `"minp"`, or `"hybrid"`. `"minp"` is single-step min-p:
+#'   (default), `"quadratic"`, `"cauchy"`, `"max"`, `"minp"`, `"hybrid"`, or
+#'   `"adaptive"`. `"minp"` is single-step min-p:
 #'   at every re-randomization it takes each representation's mid-p value and
 #'   keeps the smallest, and its p-value is the share of re-randomizations whose
 #'   smallest value is at most the observed one. It gives the same p-value as
@@ -48,6 +49,9 @@
 #'   units sit closer to (`"less"`) or farther from (`"greater"`) the rest of
 #'   their block. Every alternative tests the same sharp null hypothesis of no
 #'   effect; see Details.
+#'   With `gamma`, or with `statistic = "adaptive"` (Rosenbaum's matched-pair
+#'   tests), the test is one-sided: the default `"two.sided"` is read as `"greater"`,
+#'   and an explicit `"two.sided"` is an error.
 #' @param representations a named list of representation functions;
 #'   [riposte_reps_default()] by default. Supply your own to combine a different
 #'   set.
@@ -101,6 +105,17 @@
 #'   gives Liu and Xie's untruncated combination. Used only with
 #'   `engine = "asymptotic"`: the re-randomization Cauchy and hybrid combine mid-p
 #'   values, which are never exactly 1.
+#' @param gamma optional sensitivity parameter (`>=1`) for Rosenbaum's (2012)
+#'  matched-pair tests. Giving `gamma` switches to those tests: the design must
+#'  be matched pairs (blocks of two, one treated), the test is one-sided, and
+#'  `representations` defaults to [riposte_pair_reps()]. With `statistic = "max"`
+#'  this is "testing one hypothesis twice" (Biometrika 2012): the maximum of the
+#'  standardized pair statistics. `gamma = 1` is the randomization test of the
+#'  sharp null (random sign flips with `engine = "permute"`, the multivariate
+#'  normal bound with `engine = "asymptotic"`); `gamma > 1` bounds the p-value
+#'  under hidden bias of that size (normal approximation).
+#' @param alpha level for that adaptive test's critical values. The reported
+#'  p-value is the smallest level at which it rejects.
 #' @param ... reserved.
 #' @return an object with the observed statistic, the p-value, the
 #'   combination used, the condition number, and (for `"screen"`) the choice made.
@@ -178,16 +193,18 @@
 #' @export
 riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
                         statistic = c("screen", "quadratic", "cauchy", "max", "minp",
-                                      "hybrid"),
+                                      "hybrid", "adaptive"),
                         representations = riposte_reps_default(),
                         nresample = 1999L,
                         screen = riposte_screen_control(),
                         adjust = NULL, learner = NULL, adjust_refit = TRUE,
                         cluster_agg = mean, seed = NULL,
                         engine = c("permute", "saddlepoint", "asymptotic"),
+                        gamma = NULL, alpha = 0.05,
                         alternative = c("two.sided", "greater", "less"),
                         cauchy_truncation = 0.9, ...) {
   statistic_given <- !missing(statistic)
+  alternative_given <- !missing(alternative)
   ## require the full name: "max" and "minp" share a first letter, so partial
   ## matching would make the meaning of an abbreviation depend on which
   ## combinations exist
@@ -198,6 +215,23 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
   statistic <- match.arg(statistic)
   engine <- match.arg(engine)
   alternative <- match.arg(alternative)
+  # Rosenbaum (2012) matched-pair tests: a sensitivity analysis (`gamma`) or the
+  # exact adaptive test. One-sided, matched pairs only; see riposte_pair_reps()
+  if (!is.null(gamma) || statistic == "adaptive") {
+    if (alternative == "two.sided") {
+      if (alternative_given)
+        stop("the matched-pair tests are one-sided; use alternative = \"greater\" ",
+             "or \"less\".", call. = FALSE)
+      alternative <- "greater"
+    }
+    if (!statistic_given) statistic <- "max"
+    if (missing(representations) && statistic != "adaptive")
+      representations <- riposte_pair_reps()
+    return(riposte_test_pair_design(formula, data, blocks, clusters, statistic,
+                                    representations, nresample, adjust, seed,
+                                    engine, gamma, alpha, alternative,
+                                    match.call()))
+  }
   riposte_check_truncation(cauchy_truncation)
 
   ## the quadratic squares every departure from the null mean, and the screen
