@@ -4,6 +4,21 @@
 #' @export
 print.riposte_test <- function(x, ...) {
   cat("riposte test of the sharp null of no effect\n")
+  if (isTRUE(x$pair_test)) {
+    cat(sprintf(" %d matched pairs; one-sided (%s)\n", x$nblocks, x$alternative))
+    if (x$combination == "adaptive")
+      cat(sprintf(" exact adaptive test (Brown and Noether), Gamma = %g\n", x$gamma))
+    else if (x$gamma == 1 && x$engine == "permute")
+      cat(sprintf(" testing one hypothesis twice, Gamma = 1 (sign flips, %s)\n",
+                  if (isTRUE(x$enumerated)) "all sign patterns, exact"
+                  else sprintf("%d random draws", x$nresample)))
+    else
+      cat(sprintf(" testing one hypothesis twice, Gamma = %g (normal bound; approximate)\n",
+                  x$gamma))
+    cat(sprintf(" statistic = %.4f, %sp-value = %.4g\n", x$statistic,
+                if (x$gamma > 1) "upper bound on " else "", x$p.value))
+    return(invisible(x))
+  }
   if (isTRUE(x$engine == "asymptotic")) {
     if (isTRUE(x$clustered))
       cat(sprintf("  %d units in %d clusters in %d blocks\n",
