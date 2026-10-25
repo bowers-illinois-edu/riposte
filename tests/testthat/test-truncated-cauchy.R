@@ -73,17 +73,25 @@ test_that("cauchy_truncation changes only the large-sample engine", {
   expect_equal(a$p.value, b$p.value)
 })
 
-test_that("under the sharp null the large-sample truncated Cauchy and hybrid keep the 0.05 level on a coarse small outcome", {
+test_that("under the sharp null the large-sample truncated Cauchy and hybrid keep the 0.05 and 0.01 levels on a coarse small outcome", {
   skip_on_cran()
   ## hold the 36 Wallsten and Nteta outcomes fixed, so the treatment changes no
-  ## one's outcome, and reassign treatment 1,000 times; SE of the rejection rate
-  ## near 0.05 is sqrt(0.05 * 0.95 / 1000) = 0.0069
+  ## one's outcome, and reassign treatment 10,000 times. The SE of a rejection
+  ## rate near 0.05 is sqrt(0.05 * 0.95 / 10000) = 0.0022, so the bound
+  ## 0.05 + 3 SE = 0.0565 would catch a rate of 0.06. With 40 independent
+  ## p-values the truncated combination rejects at about 0.063 (RItools,
+  ## vignettes/truncated-cauchy-memo.md); 1,000 reassignments, as this test
+  ## used before, gave a bound of 0.071 and could not see that. With 100,000
+  ## reassignments of these 36 outcomes the rates were 0.0487 (Cauchy) and
+  ## 0.0471 (hybrid) at 0.05, and 0.0063 and 0.0050 at 0.01.
   d <- wallsten_36()
   RNGkind("L'Ecuyer-CMRG"); set.seed(20261004)
-  rej <- t(vapply(seq_len(1000), function(i) {
+  B <- 10000
+  p <- t(vapply(seq_len(B), function(i) {
     d$Z <- sample(d$Z)
     c(cauchy = riposte_test(Y ~ Z, d, statistic = "cauchy", engine = "asymptotic")$p.value,
-      hybrid = riposte_test(Y ~ Z, d, statistic = "hybrid", engine = "asymptotic")$p.value) <= 0.05
-  }, logical(2)))
-  expect_true(all(colMeans(rej) < 0.05 + 3 * sqrt(0.05 * 0.95 / 1000)))
+      hybrid = riposte_test(Y ~ Z, d, statistic = "hybrid", engine = "asymptotic")$p.value)
+  }, numeric(2)))
+  expect_true(all(colMeans(p <= 0.05) < 0.05 + 3 * sqrt(0.05 * 0.95 / B)))
+  expect_true(all(colMeans(p <= 0.01) < 0.01 + 3 * sqrt(0.01 * 0.99 / B)))
 })

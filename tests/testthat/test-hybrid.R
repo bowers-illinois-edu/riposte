@@ -65,15 +65,18 @@ test_that("on a binary outcome the hybrid is the permutation difference in means
 
 test_that("under the sharp null the hybrid holds the 0.05 level", {
   skip_on_cran()
-  ## 300 data sets with no effect on a coarse 5-point outcome, 36 units, half
-  ## treated; SE of the rejection rate is sqrt(0.05 * 0.95 / 300) = 0.0126
+  ## 5,000 data sets with no effect on a coarse 5-point outcome, 36 units, half
+  ## treated. The SE of the rejection rate is sqrt(0.05 * 0.95 / 5000) = 0.0031,
+  ## so the bound 0.05 + 3 SE = 0.059 would catch a rate of 0.06; with the 300
+  ## data sets this test used before, the bound was 0.088.
   RNGkind("L'Ecuyer-CMRG"); set.seed(20261004)
-  rej <- vapply(seq_len(300), function(i) {
+  B <- 5000
+  rej <- vapply(seq_len(B), function(i) {
     d <- data.frame(Y = sample(c(0, 0.25, 0.5, 0.75, 1), 36, replace = TRUE),
                     Z = sample(rep(0:1, 18)))
     riposte_test(Y ~ Z, d, statistic = "hybrid", nresample = 199L)$p.value <= 0.05
   }, logical(1))
-  expect_lt(mean(rej), 0.05 + 3 * sqrt(0.05 * 0.95 / 300))
+  expect_lt(mean(rej), 0.05 + 3 * sqrt(0.05 * 0.95 / B))
 })
 
 test_that("the large-sample hybrid uses the truncated Cauchy combination of its seven p-values", {
