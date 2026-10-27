@@ -85,3 +85,24 @@ test_that("matches the CRAN package testtwice on its smokerlead data (Biometrika
   expect_equal(ours$deviates[["u878"]], unname(ref$dev["U878"]), tolerance = 0.01)
   expect_equal(ours$p.value, ref$pval, tolerance = 0.01)
 })
+
+test_that("adaptive p-value never rejects more often than its level (non-nested regions)", {
+  ## 11 untied pairs: the cutoffs move from (5, 10) at 15/256 to (4, 11) at 16/256 so
+  ## "smallest rejecting level" alone gives P(p <= 0.0625) = 0.078125
+  n <- 11
+  sg <- as.matrix(expand.grid(rep(list(c(-1, 1)), n)))
+  for (gam in c(1, 1.5)) {
+    kap <- gam / (1 + gam)
+    w <- apply(sg, 1, function(s) prod(ifelse(s > 0, kap, 1 - kap)))
+    ps <- apply(sg, 1, function(s) riposte_adaptive_pvalue(s * seq_len(n), gamma = gam))
+    for (a in c(0.02, 0.05, 0.0625, 0.1, 0.2, 0.5))
+      expect_lte(sum(w[ps <= a + 1e-12]), a + 1e-12)
+  }
+})
+
+test_that("adaptive p-value equals the smallest rejecting level when regions are nested", {
+  y <- c(5, 4, 3, 2, 1, -0.5, 6, 7, 8, 9, 10, 11)
+  p <- riposte_adaptive_pvalue(y)
+  expect_true(riposte_adaptive_test(y, alpha = p + 1e-9)$reject)
+  expect_false(riposte_adaptive_test(y, alpha = p * 0.99)$reject)
+})

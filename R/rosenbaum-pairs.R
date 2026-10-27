@@ -290,40 +290,40 @@ riposte_adaptive_counts <- function(y, lambda = c(1 / 3, 2 / 3)) {
 #' P-value of the exact adaptive test: the smallest level that rejects
 #'
 #' As for procedure (6) in the Biometrika paper, the reported p-value is the
-#' smallest level `alpha` at which the adaptive test rejects. The achievable sizes
-#' form a finite set, so we search it. Rejection is nearly always monotone in
-#' `alpha`; we bisect and then confirm with a local scan over the next
-#' `scan` smaller candidates (`scan = Inf` scans them all, which is exact).
+#' smallest level `alpha` at which the adaptive test rejects. The rejection
+#' regions at different levels are not always nested (the cutoffs `(kB, kT)` can
+#' move in opposite directions as the level grows), so `alpha*` itself can reject
+#' too often under the null. The reported p-value is therefore the exact
+#' probability, under the sensitivity bound, of the union of all rejection
+#' regions at levels up to `alpha*`. When the regions are nested this equals
+#' `alpha*`; otherwise it is slightly larger. Either way `P(p.value <= a) <= a`.
 #'
 #' @inheritParams riposte_adaptive_test
 #' @param scan how many smaller candidate levels to double-check after bisecting.
 #' @return a single p-value in (0, 1].
 #' @export
-riposte_adaptive_pvalue <- function(y, gamma = 1, lambda = c(1 / 3, 2 / 3), scan = 50) {
+riposte_adaptive_pvalue <- function(y, gamma = 1, lambda = c(1 / 3, 2 / 3), scan = NULL) {
   ct <- riposte_adaptive_counts(y, lambda)
   g <- riposte_adaptive_grid(ct$I1, ct$I2, gamma)
-  rejects <- function(alpha) {
-    cr <- riposte_adaptive_pick(g, alpha)
-    !is.null(cr) && (ct$B1 >= cr$kB || ct$T >= cr$kT)
-  }
-  ## candidate levels: sizes of the rejection regions that contain the observed
+  kappa <- gamma / (1 + gamma)
+  ## null probability of every (B1, B2) cell, and which cells each cutoff pair rejects
+  pr <- outer(stats::dbinom(0:ct$I1, ct$I1, kappa), stats::dbinom(0:ct$I2, ct$I2, kappa))
+  Tm <- outer(2 * (0:ct$I1), 0:ct$I2, "+")
+  B1m <- matrix(0:ct$I1, ct$I1 + 1L, ct$I2 + 1L)
+  ## candidate levels: every achievable size of a rejection region (all of them, not
+  ## just those containing the observed counts, because the union must include the
+  ## regions of every smaller level too)
   kB <- 1:(ct$I1 + 1L); kT <- 1:g$kTmax
-  inreg <- outer(kB <= ct$B1, kT <= ct$T, "|")
-  cand <- sort(unique(g$U[kB + 1L, kT + 1L][inreg]))
+  cand <- sort(unique(g$U[kB + 1L, kT + 1L]))
   cand <- cand[cand <= 1]
-  if (!length(cand) || !rejects(max(cand))) return(1)
-  lo <- 1L; hi <- length(cand)               # invariant: rejects(cand[hi])
-  while (lo < hi) {
-    mid <- (lo + hi) %/% 2L
-    if (rejects(cand[mid])) hi <- mid else lo <- mid + 1L
+  union <- matrix(FALSE, ct$I1 + 1L, ct$I2 + 1L)
+  for (a in cand) {
+    cr <- riposte_adaptive_pick(g, a)
+    if (is.null(cr)) next
+    union <- union | B1m >= cr$kB | Tm >= cr$kT
+    if (ct$B1 >= cr$kB || ct$T >= cr$kT) return(min(1, sum(pr[union])))
   }
-  ## belt and braces: look for a smaller rejecting level the bisection skipped
-  if (hi > 1L) {
-    below <- seq_len(hi - 1L)
-    below <- utils::tail(below, if (is.finite(scan)) scan else length(below))
-    for (j in below) if (rejects(cand[j])) { hi <- j; break }
-  }
-  cand[hi]
+  1
 }
 
 #' Exact adaptive test for matched pairs (Brown + Noether)
