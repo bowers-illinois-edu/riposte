@@ -19,6 +19,31 @@
 ## in its own set of functions (riposte_pairs_*), not in riposte_score_matrix().
 ## Zero differences get score 0 (they carry no sign information), as in `testtwice`.
 
+## Shared argument checks for the public matched-pair entry points
+
+#' @keywords internal
+#' @noRd
+riposte_check_gamma <- function(gamma) {
+  if (!is.numeric(gamma) || length(gamma) != 1L || !is.finite(gamma) || gamma < 1)
+    stop("`gamma` must be a single finite number >= 1.", call. = FALSE)
+  invisible(gamma)
+}
+
+#' @keywords internal
+#' @noRd
+riposte_check_alpha <- function(alpha) {
+  if (!is.numeric(alpha) || length(alpha) != 1L || !is.finite(alpha) || alpha <= 0 || alpha >= 1)
+    stop("`alpha` must be a single number strictly between 0 and 1.", call. = FALSE)
+  invisible(alpha)
+}
+#' @keywords internal
+#' @noRd
+riposte_check_lambda <- function(lambda) {
+  if (!is.numeric(lambda) || length(lambda) != 2L || anyNA(lambda) ||
+      !(lambda[1] > 0 && lambda[1] < lambda[2] && lambda[2] <= 1))
+    stop("`lambda` must be two numbers with 0 < lambda[1] < lambda[2] <= 1.", call. = FALSE)
+  invisible(lambda)
+}
 #' Signed-rank-type scores for matched-pair differences
 #'
 #' Scores `h_i` that depend on the rank of `|y_i|`, for use with
@@ -237,6 +262,7 @@ riposte_pairs_perm_test <- function(y, H, nresample = 9999L) {
 #' @keywords internal
 #' @noRd
 riposte_adaptive_grid <- function(I1, I2, gamma = 1) {
+  riposte_check_gamma(gamma)
   kappa <- gamma / (1 + gamma)
   p1 <- stats::dbinom(0:I1, I1, kappa)       # P(B1 = 0), ..., P(B1 = I1)
   cdf2 <- function(x) ifelse(x < 0, 0, stats::pbinom(pmin(x, I2), I2, kappa))
@@ -286,6 +312,8 @@ riposte_adaptive_pick <- function(g, alpha) {
 #' @return a list with `kB`, `kT`, `size` (P(reject)), `pB` (P(B1 >= kB)), `pT`.
 #' @export
 riposte_adaptive_critical <- function(I1, I2, gamma = 1, alpha = 0.05) {
+  riposte_check_gamma(gamma)
+  riposte_check_alpha(alpha)
   cr <- riposte_adaptive_pick(riposte_adaptive_grid(I1, I2, gamma), alpha)
   if (is.null(cr)) stop("no (kB, kT) satisfies the conditions; sample too small for this alpha/gamma.", call. = FALSE)
   cr
@@ -295,6 +323,7 @@ riposte_adaptive_critical <- function(I1, I2, gamma = 1, alpha = 0.05) {
 #' @keywords internal
 #' @noRd
 riposte_adaptive_counts <- function(y, lambda = c(1 / 3, 2 / 3)) {
+  riposte_check_lambda(lambda)
   y <- y[y != 0]
   I <- length(y)
   if (anyDuplicated(abs(y))) warning("ties among |y|: broken by order; the paper assumes untied ranks.", call. = FALSE)
@@ -321,6 +350,7 @@ riposte_adaptive_counts <- function(y, lambda = c(1 / 3, 2 / 3)) {
 #' @return a single p-value in (0, 1].
 #' @export
 riposte_adaptive_pvalue <- function(y, gamma = 1, lambda = c(1 / 3, 2 / 3), scan = NULL) {
+  riposte_check_gamma(gamma)
   ct <- riposte_adaptive_counts(y, lambda)
   g <- riposte_adaptive_grid(ct$I1, ct$I2, gamma)
   kappa <- gamma / (1 + gamma)

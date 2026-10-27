@@ -136,11 +136,8 @@ riposte_test_pair_design <- function(formula, data, blocks, clusters, statistic,
   if (engine == "saddlepoint")
     stop("the matched-pair tests do not use engine = \"saddlepoint\".", call. = FALSE)
   if (is.null(gamma)) gamma <- 1
-  if (!is.numeric(gamma) || length(gamma) != 1L || !is.finite(gamma) || gamma < 1)
-    stop("`gamma` must be a single number >= 1.", call. = FALSE)
-  if (!is.numeric(alpha) || length(alpha) != 1L || alpha <= 0 || alpha >= 1)
-    stop("`alpha` must be a single number strictly between 0 and 1.", call. = FALSE)
-  nresample <- if (engine == "permute") riposte_check_nresample(nresample) else 0L
+  riposte_check_gamma(gamma)
+  riposte_check_alpha(alpha)
   if (!is.null(seed)) { RNGkind("L'Ecuyer-CMRG"); set.seed(seed) }
   des <- riposte_parse_design(formula, data, blocks)
   out <- riposte_test_pairs(des, representations, statistic, gamma, alpha,

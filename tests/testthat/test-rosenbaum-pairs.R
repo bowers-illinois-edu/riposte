@@ -118,3 +118,16 @@ test_that("all-zero score columns (six pairs) are dropped, not NaN", {
   expect_false(is.nan(pt$p.value)); expect_gt(pt$p.value, 0)
   expect_equal(riposte_pairs_perm_test(y, matrix(0, 6, 2), nresample = NULL)$p.value, 1)
 })
+
+test_that("direct calls to the adaptive functions validate gamma, alpha, and lambda", {
+  y <- 1:12 * c(1, -1)
+  expect_error(riposte_adaptive_test(y, gamma = 0.5), "gamma")
+  expect_error(riposte_adaptive_test(y, gamma = Inf), "gamma")
+  expect_error(riposte_adaptive_test(y, alpha = 1.2), "alpha")
+  expect_error(riposte_adaptive_test(y, lambda = c(0.5, 0.2)), "lambda")
+  expect_error(riposte_adaptive_test(y, lambda = 0.5), "lambda")
+  expect_error(riposte_adaptive_pvalue(y, gamma = 0.5), "gamma")
+  expect_error(riposte_adaptive_pvalue(y, lambda = c(0, 0.5)), "lambda")
+  expect_error(riposte_adaptive_critical(4, 4, gamma = 0.5), "gamma")
+  expect_error(riposte_adaptive_critical(4, 4, alpha = 0), "alpha")
+})
