@@ -157,3 +157,11 @@ test_that("identical statistics (few pairs) are left out of the orthant probabil
   fit <- riposte_test(y ~ z | pair, d, statistic = "max", gamma = 2, engine = "asymptotic")
   expect_equal(fit$p.value, full$p.value, tolerance = 1e-8)
 })
+
+test_that("matched-pair test with six pairs runs through riposte_test()", {
+  set.seed(1)
+  d <- data.frame(y = c(rnorm(6) + 1, rep(0, 6)), trt = rep(c(1, 0), each = 6), pair = rep(1:6, 2))
+  r <- riposte_test(y ~ trt | pair, d, statistic = "max", gamma = 1)
+  expect_false(is.nan(r$p.value)); expect_true(is.finite(r$p.value))
+})
+

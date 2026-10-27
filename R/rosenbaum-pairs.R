@@ -102,11 +102,26 @@ riposte_pairs_bound <- function(y, H, gamma = 1, algorithm = NULL) {
     stop("package `mvtnorm` is required.", call. = FALSE)
   H <- as.matrix(H)
   if (nrow(H) != length(y)) stop("`H` needs one row per element of `y`.", call. = FALSE)
-  if (ncol(H) < 2L) stop("`H` needs at least two columns; use a single statistic directly.", call. = FALSE)
+  if (ncol(H) < 2L && !isTRUE(attr(H, "riposte_subset")))
+    stop("`H` needs at least two columns; use a single statistic directly.", call. = FALSE)
   if (!is.numeric(gamma) || length(gamma) != 1L || gamma < 1) stop("`gamma` must be a single number >= 1.", call. = FALSE)
   if (any(H < 0)) stop("scores must be nonnegative.", call. = FALSE)
   k <- ncol(H)
   nm <- colnames(H) %||% paste0("T", seq_len(k))
+  ## a score column that is identically zero carries no information and has no variance:
+  ## leave it out before standardizing; if every column is zero there is no evidence at all
+  live <- colSums(H) > 0
+  if (!all(live)) {
+    dev <- stats::setNames(rep(NA_real_, k), nm)
+    if (!any(live))
+      return(list(p.value = 1, deviates = dev, cor = matrix(NA_real_, k, k, dimnames = list(nm, nm))))
+    Hl <- H[, live, drop = FALSE]; attr(Hl, "riposte_subset") <- TRUE
+    sub <- riposte_pairs_bound(y, Hl, gamma = gamma, algorithm = algorithm)
+    dev[live] <- sub$deviates
+    cr <- matrix(NA_real_, k, k, dimnames = list(nm, nm))
+    cr[live, live] <- sub$cor
+    return(list(p.value = sub$p.value, deviates = dev, cor = cr))
+  }
   B <- as.numeric(y > 0)
   theta <- gamma / (1 + gamma)
   st <- as.vector(B %*% H)
@@ -185,6 +200,9 @@ riposte_pairs_perm_test <- function(y, H, nresample = 9999L) {
   keep <- y != 0
   y <- y[keep]; H <- H[keep, , drop = FALSE]
   I <- length(y)
+  ## drop all-zero score columns (no variance); with none left there is no evidence
+  H <- H[, colSums(H^2) > 0, drop = FALSE]
+  if (ncol(H) == 0L) return(list(p.value = 1, statistic = NA_real_))
   sdv <- sqrt(colSums(H^2) / 4)            # theta = 1/2: Var = (1/4) sum h^2
   stat_of <- function(S) {                   # S: I x R matrix of 0/1 signs
     T <- crossprod(S, H)                     # R x L

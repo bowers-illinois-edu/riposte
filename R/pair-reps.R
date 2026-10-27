@@ -120,7 +120,7 @@ riposte_test_pairs <- function(des, representations, statistic, gamma, alpha,
                   kept = names(representations), enumerated = enumerate), base))
   }
   bnd <- riposte_pairs_bound(d, H, gamma = gamma)
-  c(list(statistic = max(bnd$deviates), p.value = bnd$p.value, combination = "max",
+  c(list(statistic = if (all(is.na(bnd$deviates))) NA_real_ else max(bnd$deviates, na.rm = TRUE), p.value = bnd$p.value, combination = "max",
          kept = names(representations), deviates = bnd$deviates), base)
 }
 

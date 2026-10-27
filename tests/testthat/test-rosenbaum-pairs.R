@@ -106,3 +106,15 @@ test_that("adaptive p-value equals the smallest rejecting level when regions are
   expect_true(riposte_adaptive_test(y, alpha = p + 1e-9)$reject)
   expect_false(riposte_adaptive_test(y, alpha = p * 0.99)$reject)
 })
+
+test_that("all-zero score columns (six pairs) are dropped, not NaN", {
+  set.seed(1); y <- rnorm(6) + 1
+  b <- riposte_pairs_test(y, gamma = 1)
+  expect_equal(b$p.value, 1); expect_true(all(is.na(b$deviates)))
+  H <- cbind(a = rank(abs(y)), z = 0, b = rank(abs(y))^2)
+  b2 <- riposte_pairs_bound(y, H, gamma = 1) # one zero column among live ones
+  expect_false(is.na(b2$p.value)); expect_true(is.na(b2$deviates[["z"]]))
+  pt <- riposte_pairs_perm_test(y, H, nresample = NULL)
+  expect_false(is.nan(pt$p.value)); expect_gt(pt$p.value, 0)
+  expect_equal(riposte_pairs_perm_test(y, matrix(0, 6, 2), nresample = NULL)$p.value, 1)
+})
