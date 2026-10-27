@@ -172,3 +172,13 @@ test_that("riposte_test() keeps its old positional signature", {
   expect_equal(fm[seq_len(match("alternative", fm))][1:3], c("formula", "data", "blocks"))
 })
 
+test_that("seed makes the normal-bound matched-pair p-value reproducible (Genz-Bretz path)", {
+  set.seed(3); I <- 40
+  d <- data.frame(y = c(rnorm(I) + 0.4, rnorm(I)), trt = rep(c(1, 0), each = I), pair = rep(seq_len(I), 2))
+  reps <- riposte_pair_reps(c("wilcoxon", "brown", "noether", "u858", "u888", "u868", "u867"))
+  a <- riposte_test(y ~ trt | pair, d, statistic = "max", representations = reps,
+                    gamma = 1.3, engine = "asymptotic", seed = 11)
+  b <- riposte_test(y ~ trt | pair, d, statistic = "max", representations = reps,
+                    gamma = 1.3, engine = "asymptotic", seed = 11)
+  expect_identical(a$p.value, b$p.value)
+})
