@@ -165,3 +165,10 @@ test_that("matched-pair test with six pairs runs through riposte_test()", {
   expect_false(is.nan(r$p.value)); expect_true(is.finite(r$p.value))
 })
 
+test_that("riposte_test() keeps its old positional signature", {
+  fm <- names(formals(riposte_test))
+  expect_lt(match("alternative", fm), match("gamma", fm))
+  expect_lt(match("alternative", fm), match("alpha", fm))
+  expect_equal(fm[seq_len(match("alternative", fm))][1:3], c("formula", "data", "blocks"))
+})
+

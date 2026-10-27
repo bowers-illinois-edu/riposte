@@ -19,11 +19,11 @@ riposte_test(
   cluster_agg = mean,
   seed = NULL,
   engine = c("permute", "saddlepoint", "asymptotic"),
-  gamma = NULL,
-  alpha = 0.05,
   alternative = c("two.sided", "greater", "less"),
   cauchy_truncation = 0.9,
-  ...
+  ...,
+  gamma = NULL,
+  alpha = 0.05
 )
 }
 \arguments{
@@ -114,19 +114,6 @@ rank-deficient metric). It is an approximation, supports \code{statistic} other 
 \code{"max"} without \code{adjust}, and requires the \code{fastperm} package (the quadratic
 needs a \code{fastperm} with \code{fastperm_spa_quadratic}).}
 
-\item{gamma}{optional sensitivity parameter (\verb{>=1}) for Rosenbaum's (2012)
-matched-pair tests. Giving \code{gamma} switches to those tests: the design must
-be matched pairs (blocks of two, one treated), the test is one-sided, and
-\code{representations} defaults to \code{\link[=riposte_pair_reps]{riposte_pair_reps()}}. With \code{statistic = "max"}
-this is "testing one hypothesis twice" (Biometrika 2012): the maximum of the
-standardized pair statistics. \code{gamma = 1} is the randomization test of the
-sharp null (random sign flips with \code{engine = "permute"}, the multivariate
-normal bound with \code{engine = "asymptotic"}); \code{gamma > 1} bounds the p-value
-under hidden bias of that size (normal approximation).}
-
-\item{alpha}{level for that adaptive test's critical values. The reported
-p-value is the smallest level at which it rejects.}
-
 \item{alternative}{\code{"two.sided"} (default) counts evidence in either
 direction. \code{"greater"} counts only treated-score sums above their
 re-randomization mean, and \code{"less"} only sums below it. For scores that rise
@@ -151,6 +138,19 @@ gives Liu and Xie's untruncated combination. Used only with
 values, which are never exactly 1.}
 
 \item{...}{reserved.}
+
+\item{gamma}{optional sensitivity parameter (\verb{>=1}) for Rosenbaum's (2012)
+matched-pair tests. Giving \code{gamma} switches to those tests: the design must
+be matched pairs (blocks of two, one treated), the test is one-sided, and
+\code{representations} defaults to \code{\link[=riposte_pair_reps]{riposte_pair_reps()}}. With \code{statistic = "max"}
+this is "testing one hypothesis twice" (Biometrika 2012): the maximum of the
+standardized pair statistics. \code{gamma = 1} is the randomization test of the
+sharp null (random sign flips with \code{engine = "permute"}, the multivariate
+normal bound with \code{engine = "asymptotic"}); \code{gamma > 1} bounds the p-value
+under hidden bias of that size (normal approximation).}
+
+\item{alpha}{level for that adaptive test's critical values. The reported
+p-value is the smallest level at which it rejects.}
 }
 \value{
 an object with the observed statistic, the p-value, the

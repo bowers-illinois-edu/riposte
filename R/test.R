@@ -231,9 +231,9 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
                         adjust = NULL, learner = NULL, adjust_refit = TRUE,
                         cluster_agg = mean, seed = NULL,
                         engine = c("permute", "saddlepoint", "asymptotic"),
-                        gamma = NULL, alpha = 0.05,
                         alternative = c("two.sided", "greater", "less"),
-                        cauchy_truncation = 0.9, ...) {
+                        cauchy_truncation = 0.9, ...,
+                        gamma = NULL, alpha = 0.05) {
   statistic_given <- !missing(statistic)
   alternative_given <- !missing(alternative)
   ## require the full name: "max" and "minp" share a first letter, so partial
