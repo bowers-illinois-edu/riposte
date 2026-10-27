@@ -334,7 +334,7 @@ riposte_adaptive_counts <- function(y, lambda = c(1 / 3, 2 / 3)) {
   list(I1 = sum(in1), I2 = sum(in2), B1 = B1, T = 2 * B1 + B2)
 }
 
-#' P-value of the exact adaptive test: the smallest level that rejects
+#' P-value of the exact adaptive test
 #'
 #' As for procedure (6) in the Biometrika paper, the reported p-value is the
 #' smallest level `alpha` at which the adaptive test rejects. The rejection
@@ -346,7 +346,7 @@ riposte_adaptive_counts <- function(y, lambda = c(1 / 3, 2 / 3)) {
 #' `alpha*`; otherwise it is slightly larger. Either way `P(p.value <= a) <= a`.
 #'
 #' @inheritParams riposte_adaptive_test
-#' @param scan how many smaller candidate levels to double-check after bisecting.
+#' @param scan no longer used (kept so old calls still work). .
 #' @return a single p-value in (0, 1].
 #' @export
 riposte_adaptive_pvalue <- function(y, gamma = 1, lambda = c(1 / 3, 2 / 3), scan = NULL) {

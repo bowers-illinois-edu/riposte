@@ -2,9 +2,9 @@
 % Please edit documentation in R/rosenbaum-pairs.R
 \name{riposte_adaptive_pvalue}
 \alias{riposte_adaptive_pvalue}
-\title{P-value of the exact adaptive test: the smallest level that rejects}
+\title{P-value of the exact adaptive test}
 \usage{
-riposte_adaptive_pvalue(y, gamma = 1, lambda = c(1/3, 2/3), scan = 50)
+riposte_adaptive_pvalue(y, gamma = 1, lambda = c(1/3, 2/3), scan = NULL)
 }
 \arguments{
 \item{y}{matched-pair differences (treated minus control). Zero differences are
@@ -16,15 +16,18 @@ warning, because the paper assumes untied ranks.}
 \item{lambda}{the two band fractions \verb{0 < lambda[1] < lambda[2] <= 1}
 (default \code{c(1/3, 2/3)}).}
 
-\item{scan}{how many smaller candidate levels to double-check after bisecting.}
+\item{scan}{no longer used (kept so old calls still work). .}
 }
 \value{
 a single p-value in (0, 1].
 }
 \description{
 As for procedure (6) in the Biometrika paper, the reported p-value is the
-smallest level \code{alpha} at which the adaptive test rejects. The achievable sizes
-form a finite set, so we search it. Rejection is nearly always monotone in
-\code{alpha}; we bisect and then confirm with a local scan over the next
-\code{scan} smaller candidates (\code{scan = Inf} scans them all, which is exact).
+smallest level \code{alpha} at which the adaptive test rejects. The rejection
+regions at different levels are not always nested (the cutoffs \verb{(kB, kT)} can
+move in opposite directions as the level grows), so \verb{alpha*} itself can reject
+too often under the null. The reported p-value is therefore the exact
+probability, under the sensitivity bound, of the union of all rejection
+regions at levels up to \verb{alpha*}. When the regions are nested this equals
+\verb{alpha*}; otherwise it is slightly larger. Either way \code{P(p.value <= a) <= a}.
 }
