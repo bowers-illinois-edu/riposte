@@ -40,6 +40,7 @@ test_that("adaptive test has exact size under full sign enumeration (gamma = 1)"
 test_that("equicorrelated-normal cutoffs: Biometrika Table 4", {
   skip_if_not_installed("mvtnorm")
   eq <- function(L, rho) { R <- matrix(rho, L, L); diag(R) <- 1; R }
+  set.seed(20120763)                          # qmvnorm() integrates by Monte Carlo in ten dimensions
   k <- mvtnorm::qmvnorm(0.95, corr = eq(10, 0.9), tail = "lower.tail")$quantile
   expect_equal(round(k, 3), 2.077, tolerance = 0.003)
   expect_equal(round(10 * (1 - stats::pnorm(k)), 3), 0.189, tolerance = 0.01)
@@ -130,4 +131,23 @@ test_that("direct calls to the adaptive functions validate gamma, alpha, and lam
   expect_error(riposte_adaptive_pvalue(y, lambda = c(0, 0.5)), "lambda")
   expect_error(riposte_adaptive_critical(4, 4, gamma = 0.5), "gamma")
   expect_error(riposte_adaptive_critical(4, 4, alpha = 0), "alpha")
+})
+
+test_that("Brown's score and the adaptive test put the same pairs in the top and middle thirds", {
+  ## The adaptive test's T = 2 B1 + B2 should be twice the sum of Brown's scores
+  ## (0, 1/2, or 1) over the pairs with positive differences, and B1 the number of
+  ## those pairs with Brown score 1. Sample sizes divisible by 3 put a rank exactly
+  ## on the boundary 2I/3 or I/3, where a floating-point comparison can go either way.
+  set.seed(39)
+  for (I in c(30, 31, 32, 33, 99, 300)) for (rep in 1:3) {
+    y <- sample(c(-1, 1), I, replace = TRUE) * seq_len(I)
+    h <- riposte_pairs_scores(y, "brown")
+    ct <- riposte_adaptive_counts(y)
+    expect_equal(ct$T, 2 * sum(h[y > 0]), label = paste("T,", I, "pairs"))
+    expect_equal(ct$B1, sum(h[y > 0] == 1), label = paste("B1,", I, "pairs"))
+  }
+  ## Jake chose the rule rank >= 2I/3 (and rank >= I/3), as testtwice scores Brown:
+  ## with 30 pairs the top third is ranks 20 to 30 and the middle third ranks 10 to 19
+  ct <- riposte_adaptive_counts(seq_len(30))
+  expect_equal(c(ct$I1, ct$I2), c(11, 10))
 })

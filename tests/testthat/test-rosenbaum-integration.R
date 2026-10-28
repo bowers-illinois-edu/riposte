@@ -182,3 +182,34 @@ test_that("seed makes the normal-bound matched-pair p-value reproducible (Genz-B
                     gamma = 1.3, engine = "asymptotic", seed = 11)
   expect_identical(a$p.value, b$p.value)
 })
+
+test_that("the adaptive p-value is small, not 1, when every difference is positive in large samples", {
+  ## Before 4c10e28 the p-value was 1 from 82 pairs at gamma = 1 and from 52 pairs at
+  ## gamma = 2: the size of the region "B1 >= 1 or T >= 1" rounded to exactly 1.
+  ## With every difference positive the test rejects at any level, so the p-value is
+  ## the chance that every sign in the top two thirds is positive.
+  for (case in list(c(I = 82, gamma = 1), c(I = 52, gamma = 2), c(I = 250, gamma = 1))) {
+    ct <- riposte_adaptive_counts(seq_len(case[["I"]]))
+    theta <- case[["gamma"]] / (1 + case[["gamma"]])
+    ## absolute tolerance: 1 - (1 - x) loses digits once x falls near 1e-16
+    p <- riposte_adaptive_pvalue(seq_len(case[["I"]]), gamma = case[["gamma"]])
+    expect_lt(abs(p - theta^(ct$I1 + ct$I2)), 1e-12,
+              label = paste(case[["I"]], "pairs, gamma", case[["gamma"]]))
+  }
+})
+
+test_that("the printed adaptive test shows its decision at alpha next to its p-value", {
+  ## The decision at alpha and the p-value are different valid tests and can disagree,
+  ## so both are printed. The 11-pair outcome with the four largest differences
+  ## positive is rejected at level 16/256 and has p-value 20/256.
+  y <- c(-(1:7), 8:11)
+  d <- data.frame(pair = rep(seq_along(y), each = 2), z = rep(0:1, length(y)),
+                  y = as.vector(rbind(0, y)))
+  fit <- riposte_test(y ~ z | pair, d, statistic = "adaptive", alpha = 16/256)
+  out <- paste(utils::capture.output(print(fit)), collapse = "\n")
+  expect_equal(fit$p.value, 20/256)
+  expect_match(out, "rejects at alpha = 0.0625: yes", fixed = TRUE)
+  fit2 <- riposte_test(y ~ z | pair, d, statistic = "adaptive", alpha = 0.05)
+  expect_match(paste(utils::capture.output(print(fit2)), collapse = "\n"),
+               "rejects at alpha = 0.05: no", fixed = TRUE)
+})

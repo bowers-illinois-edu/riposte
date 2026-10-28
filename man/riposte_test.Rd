@@ -144,13 +144,18 @@ matched-pair tests. Giving \code{gamma} switches to those tests: the design must
 be matched pairs (blocks of two, one treated), the test is one-sided, and
 \code{representations} defaults to \code{\link[=riposte_pair_reps]{riposte_pair_reps()}}. With \code{statistic = "max"}
 this is "testing one hypothesis twice" (Biometrika 2012): the maximum of the
-standardized pair statistics. \code{gamma = 1} is the randomization test of the
-sharp null (random sign flips with \code{engine = "permute"}, the multivariate
-normal bound with \code{engine = "asymptotic"}); \code{gamma > 1} bounds the p-value
-under hidden bias of that size (normal approximation).}
+standardized pair statistics. With \code{engine = "permute"} its p-value comes from
+the distribution of the signs of the pair differences when each is positive
+with chance \code{gamma / (1 + gamma)}, by listing every sign pattern (at most 16
+pairs with nonzero difference and \code{nresample >= 2^pairs}) or by drawing
+\code{nresample} patterns. At \code{gamma = 1} this is the randomization test of the
+sharp null; for \code{gamma > 1} it is an upper bound on the p-value under hidden
+bias no larger than \code{gamma}. \code{engine = "asymptotic"} gives the multivariate
+normal approximation of Rosenbaum (2012a) instead.}
 
-\item{alpha}{level for that adaptive test's critical values. The reported
-p-value is the smallest level at which it rejects.}
+\item{alpha}{level for the adaptive test's critical values, used for its
+decision \code{adaptive$reject}. The reported p-value does not depend on \code{alpha}:
+see \code{\link[=riposte_adaptive_pvalue]{riposte_adaptive_pvalue()}}.}
 }
 \value{
 an object with the observed statistic, the p-value, the
@@ -236,20 +241,23 @@ riposte_test(outcome ~ treated | block, data = d, representations = raw,
 riposte_test(outcome ~ treated | block, data = d, statistic = "minp",
              nresample = 499, seed = 1)
 
-# matched pairs: Rosenbaums (2012) tests. A pair is a block of two units with
+# matched pairs: Rosenbaum's (2012) tests. A pair is a block of two units with
 # one treated. gamma = 1 tests the sharp null by random sign flips (one-sided)
 set.seed(2)
 pairs <- data.frame(pair = rep(1:30, each = 2), treated = rep(c(1,0), 30))
 pairs$outcome <- rnorm(60) + 0.5 * pairs$treated
 riposte_test(outcome ~ treated | pair, data = pairs, gamma = 1, nresample = 999, seed = 1)
 
-# the same pairs under hidden bias of size 1.5: an upper bound on the p-value
-# (the normal bound needs the mvtnorm package)
-if (requireNamespace("mvtnorm", quietly = TRUE)) {
+# the same pairs under hidden bias of size 1.5: an upper bound on the p-value,
+# from random sign patterns that are each positive with chance 1.5 / 2.5
+riposte_test(outcome ~ treated | pair, data = pairs, gamma = 1.5, nresample = 999, seed = 1)
+
+# the exact adaptive test (Brown and Noether)
+riposte_test(outcome ~ treated | pair, data = pairs, statistic = "adaptive", gamma = 1.5)
+
+# the normal approximation to the bound (needs the mvtnorm package)
+if (requireNamespace("mvtnorm", quietly = TRUE))
   riposte_test(outcome ~ treated | pair, data = pairs, gamma = 1.5, engine = "asymptotic")
-  # the exact adaptive test (Brown and Noether)
-  riposte_test(outcome ~ treated | pair, data = pairs, statistic = "adaptive", gamma = 1.5)
-}
 }
 \references{
 Gui, L., Jiang, Y., and Wang, J. (2025). Aggregating dependent

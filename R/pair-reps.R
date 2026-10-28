@@ -84,9 +84,11 @@ riposte_pair_differences <- function(des) {
 #' Called when `gamma` is supplied. One-sided (`alternative`), matched pairs only.
 #' `statistic = "max"` is Rosenbaum's "testing one hypothesis twice" (procedure 6)
 #' over the pair representations; `"adaptive"` is the exact Brown + Noether
-#' adaptive test. At `gamma = 1` with the permutation engine the max is referred to
-#' random sign flips (exact for the sharp null); otherwise to the multivariate
-#' normal orthant bound.
+#' adaptive test. With the permutation engine the max is referred to the
+#' distribution of the signs when each is positive with chance gamma / (1 + gamma),
+#' by listing or drawing sign patterns (exact for the sharp null at gamma = 1, an
+#' upper bound on the p-value above it); with `engine = "asymptotic"`, to the
+#' multivariate normal orthant probability.
 #' @keywords internal
 #' @noRd
 riposte_test_pairs <- function(des, representations, statistic, gamma, alpha,
@@ -99,7 +101,8 @@ riposte_test_pairs <- function(des, representations, statistic, gamma, alpha,
   if (statistic == "adaptive") {
     ad <- riposte_adaptive_test(d, gamma = gamma, alpha = alpha)
     return(c(list(statistic = ad$T, p.value = riposte_adaptive_pvalue(d, gamma),
-                  combination = "adaptive", kept = "adaptive", adaptive = ad), base))
+                  combination = "adaptive", kept = "adaptive",
+                  adaptive = c(ad, list(alpha = alpha))), base))
   }
   if (statistic != "max")
     stop("with `gamma`, statistic must be \"max\" (testing one hypothesis twice) or ",
@@ -111,14 +114,16 @@ riposte_test_pairs <- function(des, representations, statistic, gamma, alpha,
   })
   H <- do.call(cbind, hs)
   if (ncol(H) < 2L) stop("testing twice needs at least two pair representations.", call. = FALSE)
-  if (gamma == 1 && engine == "permute") {
+  if (engine == "permute") {
     ## enumerate every sign pattern when that is no more work than the requested draws
     k <- sum(d != 0)
     enumerate <- k <= 16 && 2^k <= nresample
-    pt <- riposte_pairs_perm_test(d, H, nresample = if (enumerate) NULL else nresample)
+    pt <- riposte_pairs_perm_test(d, H, nresample = if (enumerate) NULL else nresample,
+                                  gamma = gamma)
     return(c(list(statistic = pt$statistic, p.value = pt$p.value, combination = "max",
                   kept = names(representations), enumerated = enumerate), base))
   }
+  ## engine = "asymptotic": the normal approximation of the paper and of testtwice
   bnd <- riposte_pairs_bound(d, H, gamma = gamma)
   c(list(statistic = if (all(is.na(bnd$deviates))) NA_real_ else max(bnd$deviates, na.rm = TRUE), p.value = bnd$p.value, combination = "max",
          kept = names(representations), deviates = bnd$deviates), base)

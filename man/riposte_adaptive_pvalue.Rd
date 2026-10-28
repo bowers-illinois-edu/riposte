@@ -16,18 +16,29 @@ warning, because the paper assumes untied ranks.}
 \item{lambda}{the two band fractions \verb{0 < lambda[1] < lambda[2] <= 1}
 (default \code{c(1/3, 2/3)}).}
 
-\item{scan}{no longer used (kept so old calls still work). .}
+\item{scan}{not used; kept so that calls written for an earlier version still run.}
 }
 \value{
 a single p-value in (0, 1].
 }
 \description{
-As for procedure (6) in the Biometrika paper, the reported p-value is the
-smallest level \code{alpha} at which the adaptive test rejects. The rejection
-regions at different levels are not always nested (the cutoffs \verb{(kB, kT)} can
-move in opposite directions as the level grows), so \verb{alpha*} itself can reject
-too often under the null. The reported p-value is therefore the exact
-probability, under the sensitivity bound, of the union of all rejection
-regions at levels up to \verb{alpha*}. When the regions are nested this equals
-\verb{alpha*}; otherwise it is slightly larger. Either way \code{P(p.value <= a) <= a}.
+Write \verb{alpha*} for the smallest level at which the adaptive test rejects the
+observed counts. Rosenbaum chooses the cutoffs \verb{(kB, kT)} separately at each
+level, so the rejection regions at different levels are not always nested:
+counts rejected at one level can go unrejected at a larger one, and \verb{alpha*}
+itself, reported as a p-value, would fall at or below a level more often than
+that level allows. The reported p-value treats \verb{alpha*} as a test statistic. It
+is the probability, under the sensitivity bound, of counts whose smallest
+rejecting level is at most the observed \verb{alpha*}, which is the probability of the
+union of the rejection regions at every level up to \verb{alpha*}. It is exact at
+\code{gamma = 1} and an upper bound for \code{gamma > 1}, so \code{P(p.value <= a) <= a}. When
+the regions are nested it is at most \verb{alpha*}.
+}
+\details{
+The chance of each rejection region is computed as 1 minus the chance of the
+counts outside it, and that subtraction loses all its digits once the region's
+chance is near \code{1e-16}. Below about \code{1e-15}, rounding error rather than
+Rosenbaum's conditions decides the cutoffs. A reported p-value that small is
+still valid, because it is the exact chance of the region the code chose, but it
+should be read only as "below about \code{1e-15}".
 }

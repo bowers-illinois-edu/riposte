@@ -2,9 +2,9 @@
 % Please edit documentation in R/rosenbaum-pairs.R
 \name{riposte_pairs_perm_test}
 \alias{riposte_pairs_perm_test}
-\title{Exact sign-flip randomization test for the maximum of L statistics (gamma = 1)}
+\title{Sign-pattern test for the maximum of L statistics, with a sensitivity bound}
 \usage{
-riposte_pairs_perm_test(y, H, nresample = 9999L)
+riposte_pairs_perm_test(y, H, nresample = 9999L, gamma = 1)
 }
 \arguments{
 \item{y}{matched-pair differences.}
@@ -13,14 +13,29 @@ riposte_pairs_perm_test(y, H, nresample = 9999L)
 
 \item{nresample}{number of random sign vectors, or \code{NULL} for full enumeration
 (requires at most 16 nonzero pairs).}
+
+\item{gamma}{sensitivity parameter, \verb{>= 1}; \code{1} (the default) gives the
+randomization test of the sharp null.}
 }
 \value{
-a list with \code{p.value} and the observed \code{statistic} (max standardized deviate).
+a list with \code{p.value} (an upper bound when \code{gamma > 1}) and the observed
+\code{statistic}, the maximum of the statistics standardized at \code{theta}.
 }
 \description{
 Under the sharp null in a paired randomized experiment, each difference's sign is
-equally likely to be either, independently across pairs. This refers the maximum
-standardized statistic to that distribution exactly (full enumeration when
-\code{I <= 16} pairs with nonzero difference and \code{nresample} is \code{NULL}, otherwise
-Monte Carlo with the observed assignment counted).
+equally likely to be either, independently across pairs. Under Rosenbaum's
+sensitivity model with hidden bias at most \code{gamma}, each sign is instead positive
+with some chance no larger than \code{theta = gamma / (1 + gamma)}. Because the scores
+are nonnegative, the chance that the maximum standardized statistic reaches its
+observed value is largest when every sign is positive with chance \code{theta}, so that
+chance is an upper bound on the p-value (and the exact p-value at \code{gamma = 1}).
+This function computes it from the distribution of the signs: by listing every
+sign pattern with its chance when \code{nresample} is \code{NULL} (at most 16 pairs with
+nonzero difference), otherwise from \code{nresample} random patterns with the observed
+signs counted as one of them. \code{\link[=riposte_pairs_bound]{riposte_pairs_bound()}} gives the normal
+approximation to the same bound.
+}
+\references{
+Rosenbaum, P. R. (2012) Testing one hypothesis twice in
+observational studies. Biometrika 99(4), 763-774.
 }

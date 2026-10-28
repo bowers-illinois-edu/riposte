@@ -28,7 +28,8 @@ multivariate normal orthant probability implied by \code{crossprod(H)}.
 }
 \details{
 This is a normal approximation (as in the paper and in \code{testtwice::tt()}).
-For \code{gamma = 1} an exact sign-flip alternative is \code{\link[=riposte_pairs_perm_test]{riposte_pairs_perm_test()}}.
+\code{\link[=riposte_pairs_perm_test]{riposte_pairs_perm_test()}} computes the same bound from the distribution of the
+signs instead, which is what \code{\link[=riposte_test]{riposte_test()}} does unless \code{engine = "asymptotic"}.
 }
 \references{
 Rosenbaum, P. R. (2012) Testing one hypothesis twice in

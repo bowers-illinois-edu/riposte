@@ -5,8 +5,11 @@
 ## T = sum_i B_i h_i, where B_i = 1{y_i > 0} and h_i is a score that depends on the
 ## rank of |y_i|:
 ##   (a) "testing one hypothesis twice" (Rosenbaum 2012, Biometrika 99:763-774):
-##       standardize L statistics, refer their MAXIMUM to a multivariate normal
-##       orthant probability. Reference implementation: the CRAN package `testtwice`.
+##       standardize L statistics and refer their MAXIMUM to its distribution when
+##       every sign is positive with chance gamma / (1 + gamma), either by listing or
+##       drawing sign patterns (riposte_pairs_perm_test) or, as in the paper and the
+##       CRAN package `testtwice`, by a multivariate normal orthant probability
+##       (riposte_pairs_bound).
 ##   (b) the exact adaptive test (Rosenbaum 2012, Ann. Appl. Stat. 6:83-105): reject if
 ##       Noether's B1 >= kB or Brown's T = 2*B1 + B2 >= kT, with (kB, kT) from exact
 ##       binomial arithmetic. Reference: the paper's Section 4.2 worked example.
@@ -44,6 +47,15 @@ riposte_check_lambda <- function(lambda) {
     stop("`lambda` must be two numbers with 0 < lambda[1] < lambda[2] <= 1.", call. = FALSE)
   invisible(lambda)
 }
+## Is rank rk at or above the fraction f of the I pairs (rk >= f * I)? Brown's and
+## Noether's scores and the adaptive test's bands all use this rule, so that T = 2 B1 +
+## B2 stays twice the sum of Brown's scores. Ranks are multiples of 1/2, so the small
+## tolerance only settles a rank lying exactly on f * I (rank 20 of 30 at f = 2/3), which
+## floating point would otherwise decide by how f * I happens to round.
+#' @keywords internal
+#' @noRd
+riposte_rank_at_least <- function(rk, I, f) rk >= f * I - 1e-8
+
 #' Signed-rank-type scores for matched-pair differences
 #'
 #' Scores `h_i` that depend on the rank of `|y_i|`, for use with
@@ -76,10 +88,10 @@ riposte_pairs_scores <- function(y, type = c("wilcoxon", "brown", "noether", "us
               wilcoxon = rk,
               brown = {
                 a <- q1 %||% (1 / 3); b <- q2 %||% (2 / 3)
-                p <- rk / I; (p >= a) + (p >= b)
+                riposte_rank_at_least(rk, I, a) + riposte_rank_at_least(rk, I, b)
               },
               noether = {
-                a <- q1 %||% (2 / 3); (rk / I >= a) * 1
+                a <- q1 %||% (2 / 3); riposte_rank_at_least(rk, I, a) * 1
               },
               ustat = {
                 if (!(m1 >= 1 && m1 <= m2 && m2 <= m && all(c(m, m1, m2) == round(c(m, m1, m2)))))
@@ -109,7 +121,8 @@ riposte_pairs_scores <- function(y, type = c("wilcoxon", "brown", "noether", "us
 #' multivariate normal orthant probability implied by `crossprod(H)`.
 #'
 #' This is a normal approximation (as in the paper and in `testtwice::tt()`).
-#' For `gamma = 1` an exact sign-flip alternative is [riposte_pairs_perm_test()].
+#' [riposte_pairs_perm_test()] computes the same bound from the distribution of the
+#' signs instead, which is what [riposte_test()] does unless `engine = "asymptotic"`.
 #'
 #' @param y matched-pair differences.
 #' @param H numeric matrix, one row per pair, one column per statistic (`2 <= L`).
@@ -156,7 +169,7 @@ riposte_pairs_bound <- function(y, H, gamma = 1, algorithm = NULL) {
   cr <- stats::cov2cor(cv)
   # a statistic that is a perfect copy of an earlier one (this happens with few pairs)
   # adds nothing to the maximum but makes the correlation matrix singular, which Miwa
-  # cannot handle; leave the copies out of the probabiliy (the maximum itself is unchanged)
+  # cannot handle; leave the copies out of the probability (the maximum itself is unchanged)
   dup <- vapply(seq_len(k), function(j) any(abs(cr[j, seq_len(j - 1L)] - 1) < 1e-10),
                 logical(1))
   crk <- cr[!dup, !dup, drop = FALSE]
@@ -207,20 +220,34 @@ riposte_pairs_test <- function(y, statistics = c("u878", "u867"), gamma = 1,
   riposte_pairs_bound(y, H, gamma = gamma, algorithm = algorithm)
 }
 
-#' Exact sign-flip randomization test for the maximum of L statistics (gamma = 1)
+#' Sign-pattern test for the maximum of L statistics, with a sensitivity bound
 #'
 #' Under the sharp null in a paired randomized experiment, each difference's sign is
-#' equally likely to be either, independently across pairs. This refers the maximum
-#' standardized statistic to that distribution exactly (full enumeration when
-#' `I <= 16` pairs with nonzero difference and `nresample` is `NULL`, otherwise
-#' Monte Carlo with the observed assignment counted).
+#' equally likely to be either, independently across pairs. Under Rosenbaum's
+#' sensitivity model with hidden bias at most `gamma`, each sign is instead positive
+#' with some chance no larger than `theta = gamma / (1 + gamma)`. Because the scores
+#' are nonnegative, the chance that the maximum standardized statistic reaches its
+#' observed value is largest when every sign is positive with chance `theta`, so that
+#' chance is an upper bound on the p-value (and the exact p-value at `gamma = 1`).
+#' This function computes it from the distribution of the signs: by listing every
+#' sign pattern with its chance when `nresample` is `NULL` (at most 16 pairs with
+#' nonzero difference), otherwise from `nresample` random patterns with the observed
+#' signs counted as one of them. [riposte_pairs_bound()] gives the normal
+#' approximation to the same bound.
 #'
 #' @inheritParams riposte_pairs_bound
 #' @param nresample number of random sign vectors, or `NULL` for full enumeration
 #'   (requires at most 16 nonzero pairs).
-#' @return a list with `p.value` and the observed `statistic` (max standardized deviate).
+#' @param gamma sensitivity parameter, `>= 1`; `1` (the default) gives the
+#'   randomization test of the sharp null.
+#' @return a list with `p.value` (an upper bound when `gamma > 1`) and the observed
+#'   `statistic`, the maximum of the statistics standardized at `theta`.
+#' @references Rosenbaum, P. R. (2012) Testing one hypothesis twice in
+#'   observational studies. Biometrika 99(4), 763-774.
 #' @export
-riposte_pairs_perm_test <- function(y, H, nresample = 9999L) {
+riposte_pairs_perm_test <- function(y, H, nresample = 9999L, gamma = 1) {
+  riposte_check_gamma(gamma)
+  theta <- gamma / (1 + gamma)
   H <- as.matrix(H)
   keep <- y != 0
   y <- y[keep]; H <- H[keep, , drop = FALSE]
@@ -228,10 +255,12 @@ riposte_pairs_perm_test <- function(y, H, nresample = 9999L) {
   ## drop all-zero score columns (no variance); with none left there is no evidence
   H <- H[, colSums(H^2) > 0, drop = FALSE]
   if (ncol(H) == 0L) return(list(p.value = 1, statistic = NA_real_))
-  sdv <- sqrt(colSums(H^2) / 4)            # theta = 1/2: Var = (1/4) sum h^2
+  ## mean and sd of each statistic when every sign is positive with chance theta
+  mu <- theta * colSums(H)
+  sdv <- sqrt(theta * (1 - theta) * colSums(H^2))
   stat_of <- function(S) {                   # S: I x R matrix of 0/1 signs
     T <- crossprod(S, H)                     # R x L
-    Z <- sweep(sweep(T, 2, colSums(H) / 2), 2, sdv, "/")
+    Z <- sweep(sweep(T, 2, mu), 2, sdv, "/")
     apply(Z, 1, max)
   }
   obs <- stat_of(matrix(as.numeric(y > 0), ncol = 1))
@@ -240,9 +269,12 @@ riposte_pairs_perm_test <- function(y, H, nresample = 9999L) {
     S <- as.matrix(expand.grid(rep(list(0:1), I)))
     S <- t(S)
     sims <- stat_of(S)
-    p <- mean(sims >= obs - 1e-12)
+    ## each pattern's chance: theta for every positive sign, 1 - theta for every negative
+    npos <- colSums(S)
+    chance <- theta^npos * (1 - theta)^(I - npos)
+    p <- sum(chance[sims >= obs - 1e-12])
   } else {
-    S <- matrix(stats::rbinom(I * nresample, 1, 0.5), nrow = I)
+    S <- matrix(stats::rbinom(I * nresample, 1, theta), nrow = I)
     sims <- stat_of(S)
     p <- (1 + sum(sims >= obs - 1e-12)) / (nresample + 1)
   }
@@ -328,25 +360,35 @@ riposte_adaptive_counts <- function(y, lambda = c(1 / 3, 2 / 3)) {
   I <- length(y)
   if (anyDuplicated(abs(y))) warning("ties among |y|: broken by order; the paper assumes untied ranks.", call. = FALSE)
   q <- rank(abs(y), ties.method = "first")
-  in1 <- q >= (1 - lambda[1]) * I
-  in2 <- q < (1 - lambda[1]) * I & q >= (1 - lambda[2]) * I
+  in1 <- riposte_rank_at_least(q, I, 1 - lambda[1])
+  in2 <- !in1 & riposte_rank_at_least(q, I, 1 - lambda[2])
   B1 <- sum(y[in1] > 0); B2 <- sum(y[in2] > 0)
   list(I1 = sum(in1), I2 = sum(in2), B1 = B1, T = 2 * B1 + B2)
 }
 
 #' P-value of the exact adaptive test
 #'
-#' As for procedure (6) in the Biometrika paper, the reported p-value is the
-#' smallest level `alpha` at which the adaptive test rejects. The rejection
-#' regions at different levels are not always nested (the cutoffs `(kB, kT)` can
-#' move in opposite directions as the level grows), so `alpha*` itself can reject
-#' too often under the null. The reported p-value is therefore the exact
-#' probability, under the sensitivity bound, of the union of all rejection
-#' regions at levels up to `alpha*`. When the regions are nested this equals
-#' `alpha*`; otherwise it is slightly larger. Either way `P(p.value <= a) <= a`.
+#' Write `alpha*` for the smallest level at which the adaptive test rejects the
+#' observed counts. Rosenbaum chooses the cutoffs `(kB, kT)` separately at each
+#' level, so the rejection regions at different levels are not always nested:
+#' counts rejected at one level can go unrejected at a larger one, and `alpha*`
+#' itself, reported as a p-value, would fall at or below a level more often than
+#' that level allows. The reported p-value treats `alpha*` as a test statistic. It
+#' is the probability, under the sensitivity bound, of counts whose smallest
+#' rejecting level is at most the observed `alpha*`, which is the probability of the
+#' union of the rejection regions at every level up to `alpha*`. It is exact at
+#' `gamma = 1` and an upper bound for `gamma > 1`, so `P(p.value <= a) <= a`. When
+#' the regions are nested it is at most `alpha*`.
+#'
+#' The chance of each rejection region is computed as 1 minus the chance of the
+#' counts outside it, and that subtraction loses all its digits once the region's
+#' chance is near `1e-16`. Below about `1e-15`, rounding error rather than
+#' Rosenbaum's conditions decides the cutoffs. A reported p-value that small is
+#' still valid, because it is the exact chance of the region the code chose, but it
+#' should be read only as "below about `1e-15`".
 #'
 #' @inheritParams riposte_adaptive_test
-#' @param scan no longer used (kept so old calls still work). .
+#' @param scan not used; kept so that calls written for an earlier version still run.
 #' @return a single p-value in (0, 1].
 #' @export
 riposte_adaptive_pvalue <- function(y, gamma = 1, lambda = c(1 / 3, 2 / 3), scan = NULL) {
