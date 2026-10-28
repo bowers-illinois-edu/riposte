@@ -1,5 +1,85 @@
 # Changelog
 
+## riposte 0.0.0.9011
+
+- [`riposte_adaptive_smallest_level()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_smallest_level.md)
+  returns Rosenbaum’s own p-value for the exact adaptive test: the
+  smallest level at which the test, with cutoffs chosen by
+  conditions (4) to (6) of the paper, rejects (Annals of Applied
+  Statistics 6:83-105, p. 100). Because the cutoffs are chosen
+  separately at each level, this number can fall at or below a level
+  more often than that level allows.
+  [`riposte_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_test.md)
+  keeps
+  [`riposte_adaptive_pvalue()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_pvalue.md)
+  as its p-value, returns Rosenbaum’s as `adaptive$rosenbaum_p`, and
+  prints both.
+- The matched-pair functions are in the pkgdown reference index.
+
+## riposte 0.0.0.9010
+
+- [`riposte_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_test.md)
+  runs the matched-pair tests of Rosenbaum (2012), “Testing one
+  hypothesis twice” (Biometrika 99:763-774) and “An exact adaptive test
+  with superior design sensitivity” (Annals of Applied Statistics
+  6:83-105). A matched pair is a block of two units with one treated.
+  Giving `gamma` (the sensitivity parameter, at least 1) or
+  `statistic = "adaptive"` switches to these tests. They are one-sided:
+  `alternative = "two.sided"`, the default, is read as `"greater"`, and
+  asking for it explicitly is an error. They need matched pairs and do
+  not support `clusters`, `adjust`, or `engine = "saddlepoint"`.
+- With `gamma` the statistic is `"max"` by default: the largest of the
+  standardized pair statistics (Wilcoxon, Brown, Noether, and the
+  U-statistics (8, 7, 8) and (8, 6, 7), from
+  [`riposte_pair_reps()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_pair_reps.md)).
+  With the default engine its p-value comes from the distribution of the
+  signs of the pair differences when each sign is positive with chance
+  `gamma / (1 + gamma)`: every sign pattern is listed when there are 16
+  or fewer nonzero pairs and `nresample` is at least 2^pairs, and
+  otherwise `nresample` patterns are drawn. At `gamma = 1` this is the
+  randomization test of the sharp null hypothesis. For `gamma > 1` it is
+  an upper bound on the p-value under hidden bias no larger than
+  `gamma`.
+  [`riposte_pairs_perm_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_pairs_perm_test.md)
+  takes the new `gamma` argument. `engine = "asymptotic"` gives the
+  multivariate normal approximation of the paper, computed with
+  `mvtnorm` (Suggests). The printed result calls it approximate.
+  Statistics that are exact copies of each other, as happens with few
+  pairs, count once in that probability.
+- `statistic = "adaptive"` is the exact adaptive test: it rejects at
+  level `alpha` when Noether’s B1 or Brown’s T = 2 B1 + B2 reaches its
+  critical value, with the two values chosen by conditions (4) to (6) of
+  the paper. Rosenbaum applies those conditions separately at each
+  level, so the smallest level at which the test rejects is not a valid
+  p-value. The reported p-value is the chance, under the sensitivity
+  bound, of counts whose smallest rejecting level is at most the
+  observed one (see
+  [`riposte_adaptive_pvalue()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_pvalue.md)).
+  The decision at `alpha` and this p-value can disagree, so the printed
+  result shows both.
+- Brown’s and Noether’s scores and the adaptive test’s bands share one
+  rule: a pair is in the top third when its rank is at least 2I/3 of the
+  I pairs (as in `testtwice`), and in the middle third when its rank is
+  at least I/3. Before, the adaptive test left out the rank exactly at
+  2I/3 when I was a multiple of 3.
+- The pair statistics are Strasser-Weber linear statistics: the
+  better-off unit of each pair gets the score and the other gets zero.
+  So
+  [`riposte_components()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_components.md),
+  the closed-form moments and the other combinations work on them. They
+  need the ranks of the absolute differences across all pairs, so a
+  representation of class `riposte_pooled_rep` takes `(y, block)` rather
+  than one block’s outcomes.
+- New tests reproduce the 12 single-statistic analyses of Table 2 and
+  the combined analyses of Table 3 of the Biometrika paper to the
+  printed three decimals, and the critical values of the Annals paper’s
+  worked examples. They check the sign-pattern p-value and its bound
+  against enumeration of all sign patterns, that the bound falls at or
+  below a level with chance at most that level under several patterns of
+  hidden bias, the adaptive test’s size and p-value against enumeration,
+  and the normal approximation against the `testtwice` package
+  (Suggests).
+
 ## riposte 0.0.0.9009
 
 - `riposte_test(statistic = "minp")` computes single-step min-p: at

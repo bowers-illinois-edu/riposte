@@ -205,6 +205,33 @@ The views of the outcome that get combined; an open, user-supplied set.
 - [`riposte_poly_reps()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_poly_reps.md)
   : Polynomial rank-score representations at several tuning values
 
+## Matched pairs (Rosenbaum 2012)
+
+Testing one hypothesis twice, the exact adaptive test, and the
+sensitivity bound for hidden bias.
+
+- [`riposte_pair_rep()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_pair_rep.md)
+  : Matched-pair representation (Rosenbaum 2012)
+- [`riposte_pair_reps()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_pair_reps.md)
+  : Rosenbaum's matched-pair representations
+- [`riposte_pairs_scores()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_pairs_scores.md)
+  : Signed-rank-type scores for matched-pair differences
+- [`riposte_pairs_perm_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_pairs_perm_test.md)
+  : Sign-pattern test for the maximum of L statistics, with a
+  sensitivity bound
+- [`riposte_pairs_bound()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_pairs_bound.md)
+  : Maximum-of-L sensitivity bound (Rosenbaum 2012, procedure 6)
+- [`riposte_pairs_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_pairs_test.md)
+  : Test one hypothesis with several matched-pair statistics
+- [`riposte_adaptive_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_test.md)
+  : Exact adaptive test for matched pairs (Brown + Noether)
+- [`riposte_adaptive_critical()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_critical.md)
+  : Critical values of the exact adaptive test
+- [`riposte_adaptive_pvalue()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_pvalue.md)
+  : P-value of the exact adaptive test
+- [`riposte_adaptive_smallest_level()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_smallest_level.md)
+  : Rosenbaum's p-value for the exact adaptive test
+
 ## Combination screen
 
 Choosing or blending the quadratic and the Cauchy from the conditioning

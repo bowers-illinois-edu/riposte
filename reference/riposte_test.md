@@ -10,7 +10,7 @@ riposte_test(
   data,
   blocks = NULL,
   clusters = NULL,
-  statistic = c("screen", "quadratic", "cauchy", "max", "minp", "hybrid"),
+  statistic = c("screen", "quadratic", "cauchy", "max", "minp", "hybrid", "adaptive"),
   representations = riposte_reps_default(),
   nresample = 1999L,
   screen = riposte_screen_control(),
@@ -22,7 +22,9 @@ riposte_test(
   engine = c("permute", "saddlepoint", "asymptotic"),
   alternative = c("two.sided", "greater", "less"),
   cauchy_truncation = 0.9,
-  ...
+  ...,
+  gamma = NULL,
+  alpha = 0.05
 )
 ```
 
@@ -57,13 +59,13 @@ riposte_test(
 - statistic:
 
   which combination to use, spelled in full: `"screen"` (default),
-  `"quadratic"`, `"cauchy"`, `"max"`, `"minp"`, or `"hybrid"`. `"minp"`
-  is single-step min-p: at every re-randomization it takes each
-  representation's mid-p value and keeps the smallest, and its p-value
-  is the share of re-randomizations whose smallest value is at most the
-  observed one. It gives the same p-value as `"max"` when every
-  representation's statistic has the same null distribution, and differs
-  when one takes few values. Each representation's most extreme
+  `"quadratic"`, `"cauchy"`, `"max"`, `"minp"`, `"hybrid"`, or
+  `"adaptive"`. `"minp"` is single-step min-p: at every re-randomization
+  it takes each representation's mid-p value and keeps the smallest, and
+  its p-value is the share of re-randomizations whose smallest value is
+  at most the observed one. It gives the same p-value as `"max"` when
+  every representation's statistic has the same null distribution, and
+  differs when one takes few values. Each representation's most extreme
   re-randomization ties for the smallest mid-p value, so the min-p
   p-value cannot fall below about the number of representations divided
   by `nresample + 1`: 0.003 for the default six with 1999
@@ -165,7 +167,10 @@ riposte_test(
   outcome, so a one-sided test of them asks instead whether treated
   units sit closer to (`"less"`) or farther from (`"greater"`) the rest
   of their block. Every alternative tests the same sharp null hypothesis
-  of no effect; see Details.
+  of no effect; see Details. With `gamma`, or with
+  `statistic = "adaptive"` (Rosenbaum's matched-pair tests), the test is
+  one-sided: the default `"two.sided"` is read as `"greater"`, and an
+  explicit `"two.sided"` is an error.
 
 - cauchy_truncation:
 
@@ -182,6 +187,32 @@ riposte_test(
 - ...:
 
   reserved.
+
+- gamma:
+
+  optional sensitivity parameter (`>=1`) for Rosenbaum's (2012)
+  matched-pair tests. Giving `gamma` switches to those tests: the design
+  must be matched pairs (blocks of two, one treated), the test is
+  one-sided, and `representations` defaults to
+  [`riposte_pair_reps()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_pair_reps.md).
+  With `statistic = "max"` this is "testing one hypothesis twice"
+  (Biometrika 2012): the maximum of the standardized pair statistics.
+  With `engine = "permute"` its p-value comes from the distribution of
+  the signs of the pair differences when each is positive with chance
+  `gamma / (1 + gamma)`, by listing every sign pattern (at most 16 pairs
+  with nonzero difference and `nresample >= 2^pairs`) or by drawing
+  `nresample` patterns. At `gamma = 1` this is the randomization test of
+  the sharp null; for `gamma > 1` it is an upper bound on the p-value
+  under hidden bias no larger than `gamma`. `engine = "asymptotic"`
+  gives the multivariate normal approximation of Rosenbaum (2012a)
+  instead.
+
+- alpha:
+
+  level for the adaptive test's critical values, used for its decision
+  `adaptive$reject`. The reported p-value does not depend on `alpha`:
+  see
+  [`riposte_adaptive_pvalue()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_pvalue.md).
 
 ## Value
 
@@ -235,11 +266,32 @@ p-value is one unless an opposing infinite term makes the sum undefined,
 which gives an error. This engine never switches silently to
 permutations.
 
+With `gamma` or `statistic = "adaptive"`, `riposte_test()` runs the
+matched-pair tests of Rosenbaum (2012a, 2012b) instead of the block
+tests above. At `gamma = 1` they test the sharp null of no effect; for
+`gamma > 1` they bound the p-value under a hidden bias that could change
+each pair's chance of treatment by the factor `gamma`. They follow the
+`testtwice` package, which the tests check against, and Tables 2 and 3
+of the Biometrika paper, which they reproduce. See
+[`riposte_pair_reps()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_pair_reps.md)
+for the statistics and
+[`riposte_adaptive_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_test.md)
+for the adaptive test.
+
 ## References
 
 Gui, L., Jiang, Y., and Wang, J. (2025). Aggregating dependent signals
 with heavy-tailed combination tests. *Biometrika*, 112(4), asaf038.
 [doi:10.1093/biomet/asaf038](https://doi.org/10.1093/biomet/asaf038)
+
+Rosenbaum, P.R. (2012a). Testing one hypothesis twice in observational
+studies. *Biometrika*, 99(4), 763-774.
+[doi:10.1093/biomet/ass032](https://doi.org/10.1093/biomet/ass032)
+
+Rosenbaum, P.R. (2012b). An exact adaptive test with superior design
+sensitivity in an observational study of treatments for ovarian cancer.
+*Annals of Applied Statistics*, 6(1), 83-105.
+[doi:10.1214/11-AOAS508](https://doi.org/10.1214/11-AOAS508)
 
 ## Examples
 
@@ -285,4 +337,40 @@ riposte_test(outcome ~ treated | block, data = d, statistic = "minp",
 #>   40 units in 4 blocks; 499 re-randomizations
 #>   combination: minp
 #>   statistic = 0.0070,  p-value = 0.0360
+
+# matched pairs: Rosenbaum's (2012) tests. A pair is a block of two units with
+# one treated. gamma = 1 tests the sharp null by random sign flips (one-sided)
+set.seed(2)
+pairs <- data.frame(pair = rep(1:30, each = 2), treated = rep(c(1,0), 30))
+pairs$outcome <- rnorm(60) + 0.5 * pairs$treated
+riposte_test(outcome ~ treated | pair, data = pairs, gamma = 1, nresample = 999, seed = 1)
+#> riposte test of the sharp null of no effect
+#>  30 matched pairs; one-sided (greater)
+#>  testing one hypothesis twice, Gamma = 1 (999 random sign patterns)
+#>  statistic = 2.9927, p-value = 0.001
+
+# the same pairs under hidden bias of size 1.5: an upper bound on the p-value,
+# from random sign patterns that are each positive with chance 1.5 / 2.5
+riposte_test(outcome ~ treated | pair, data = pairs, gamma = 1.5, nresample = 999, seed = 1)
+#> riposte test of the sharp null of no effect
+#>  30 matched pairs; one-sided (greater)
+#>  testing one hypothesis twice, Gamma = 1.5 (999 random sign patterns)
+#>  statistic = 2.0783, upper bound on p-value = 0.042
+
+# the exact adaptive test (Brown and Noether)
+riposte_test(outcome ~ treated | pair, data = pairs, statistic = "adaptive", gamma = 1.5)
+#> riposte test of the sharp null of no effect
+#>  30 matched pairs; one-sided (greater)
+#>  exact adaptive test (Brown and Noether), Gamma = 1.5
+#>  statistic = 25.0000, upper bound on p-value = 0.07236
+#>  Rosenbaum's p-value (smallest level that rejects) = 0.07236
+#>  rejects at alpha = 0.05: no (critical values kB = 10, kT = 26)
+
+# the normal approximation to the bound (needs the mvtnorm package)
+if (requireNamespace("mvtnorm", quietly = TRUE))
+  riposte_test(outcome ~ treated | pair, data = pairs, gamma = 1.5, engine = "asymptotic")
+#> riposte test of the sharp null of no effect
+#>  30 matched pairs; one-sided (greater)
+#>  testing one hypothesis twice, Gamma = 1.5 (normal approximation)
+#>  statistic = 2.0783, approximate upper bound on p-value = 0.0409
 ```

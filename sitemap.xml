@@ -1,8 +1,10 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/404.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/CLAUDE.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/LICENSE-text.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/LICENSE.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/MINP_PLAN.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/POINT.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/articles/covariance-adjustment.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/articles/harm.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/articles/index.html</loc></url>
@@ -14,6 +16,10 @@
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/index.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte-package.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_acat_term.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_critical.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_pvalue.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_smallest_level.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_test.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_adjust.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_block_draws.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_components.html</loc></url>
@@ -23,6 +29,12 @@
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_mean_dist.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_mean_rank_dist.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_midp.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_pair_rep.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_pair_reps.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_pairs_bound.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_pairs_perm_test.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_pairs_scores.html</loc></url>
+<url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_pairs_test.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_poly_reps.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_poly_scores.html</loc></url>
 <url><loc>https://bowers-illinois-edu.github.io/riposte/reference/riposte_rank.html</loc></url>
