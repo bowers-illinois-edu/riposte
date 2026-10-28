@@ -34,5 +34,6 @@ dev/*.pdf
 # NSF proposal and local paths), and a draft corollary for a coauthored paper.
 HANDOFF.md
 FASTPERM_INTEGRATION.md
+PR3_REVIEW.md
 dev/riposte_spec.md
 dev/reg-no-regrets-corollary.tex
