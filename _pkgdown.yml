@@ -24,6 +24,19 @@ reference:
   - riposte_stephenson_reps
   - riposte_poly_scores
   - riposte_poly_reps
+- title: Matched pairs (Rosenbaum 2012)
+  desc: Testing one hypothesis twice, the exact adaptive test, and the sensitivity bound for hidden bias.
+  contents:
+  - riposte_pair_rep
+  - riposte_pair_reps
+  - riposte_pairs_scores
+  - riposte_pairs_perm_test
+  - riposte_pairs_bound
+  - riposte_pairs_test
+  - riposte_adaptive_test
+  - riposte_adaptive_critical
+  - riposte_adaptive_pvalue
+  - riposte_adaptive_smallest_level
 - title: Combination screen
   desc: Choosing or blending the quadratic and the Cauchy from the conditioning of the covariance.
   contents:

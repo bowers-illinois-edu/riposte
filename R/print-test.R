@@ -22,6 +22,9 @@ print.riposte_test <- function(x, ...) {
     ## the decision at alpha is a different valid test from the p-value and can
     ## disagree with it, so show both
     if (x$combination == "adaptive")
+      cat(sprintf(" Rosenbaum's p-value (smallest level that rejects) = %.4g\n",
+                  x$adaptive$rosenbaum_p))
+    if (x$combination == "adaptive")
       cat(sprintf(" rejects at alpha = %g: %s (critical values kB = %d, kT = %d)\n",
                   x$adaptive$alpha, if (x$adaptive$reject) "yes" else "no",
                   as.integer(x$adaptive$kB), as.integer(x$adaptive$kT)))

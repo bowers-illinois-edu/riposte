@@ -100,9 +100,12 @@ riposte_test_pairs <- function(des, representations, statistic, gamma, alpha,
                pair_test = TRUE)
   if (statistic == "adaptive") {
     ad <- riposte_adaptive_test(d, gamma = gamma, alpha = alpha)
-    return(c(list(statistic = ad$T, p.value = riposte_adaptive_pvalue(d, gamma),
+    ## riposte's p-value, and Rosenbaum's (the smallest level that rejects) beside it
+    lv <- riposte_adaptive_levels(d, gamma, c(1 / 3, 2 / 3))
+    return(c(list(statistic = ad$T, p.value = lv$p.value,
                   combination = "adaptive", kept = "adaptive",
-                  adaptive = c(ad, list(alpha = alpha))), base))
+                  adaptive = c(ad, list(alpha = alpha, rosenbaum_p = lv$smallest_level))),
+             base))
   }
   if (statistic != "max")
     stop("with `gamma`, statistic must be \"max\" (testing one hypothesis twice) or ",

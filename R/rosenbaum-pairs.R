@@ -378,7 +378,8 @@ riposte_adaptive_counts <- function(y, lambda = c(1 / 3, 2 / 3)) {
 #' rejecting level is at most the observed `alpha*`, which is the probability of the
 #' union of the rejection regions at every level up to `alpha*`. It is exact at
 #' `gamma = 1` and an upper bound for `gamma > 1`, so `P(p.value <= a) <= a`. When
-#' the regions are nested it is at most `alpha*`.
+#' the regions are nested it is at most `alpha*`. Rosenbaum (2012, p. 100) reports
+#' `alpha*` itself as the p-value; [riposte_adaptive_smallest_level()] returns it.
 #'
 #' The chance of each rejection region is computed as 1 minus the chance of the
 #' counts outside it, and that subtraction loses all its digits once the region's
@@ -393,6 +394,37 @@ riposte_adaptive_counts <- function(y, lambda = c(1 / 3, 2 / 3)) {
 #' @export
 riposte_adaptive_pvalue <- function(y, gamma = 1, lambda = c(1 / 3, 2 / 3), scan = NULL) {
   riposte_check_gamma(gamma)
+  riposte_adaptive_levels(y, gamma, lambda)$p.value
+}
+
+#' Rosenbaum's p-value for the exact adaptive test
+#'
+#' The smallest level `alpha` at which the adaptive test, with its cutoffs chosen by
+#' conditions (4)-(6) of Rosenbaum (2012), rejects the observed counts. Rosenbaum
+#' defines the test's p-value this way: "The P-value ... for the adaptive test is the
+#' smallest alpha in (4)-(6) that leads to rejection" (p. 100). Because the cutoffs
+#' are chosen separately at each level, this number can fall at or below a level more
+#' often than that level allows when there is no effect: with 11 untied pairs at
+#' `gamma = 1`, it is at most 16/256 with chance 20/256. [riposte_adaptive_pvalue()]
+#' gives a p-value that keeps its level, and [riposte_test()] prints both.
+#'
+#' @inheritParams riposte_adaptive_test
+#' @return the smallest rejecting level, in (0, 1]; 1 when no level below 1 rejects.
+#' @references Rosenbaum, P. R. (2012) An exact adaptive test with superior design
+#'   sensitivity in an observational study of treatments for ovarian cancer. Annals
+#'   of Applied Statistics 6(1), 83-105.
+#' @export
+riposte_adaptive_smallest_level <- function(y, gamma = 1, lambda = c(1 / 3, 2 / 3)) {
+  riposte_check_gamma(gamma)
+  riposte_adaptive_levels(y, gamma, lambda)$smallest_level
+}
+
+## Both adaptive p-values in one pass over the achievable levels, smallest first: the
+## first level whose cutoffs reject the observed counts is Rosenbaum's p-value, and the
+## chance of the union of the rejection regions up to that level is riposte's.
+#' @keywords internal
+#' @noRd
+riposte_adaptive_levels <- function(y, gamma, lambda) {
   ct <- riposte_adaptive_counts(y, lambda)
   g <- riposte_adaptive_grid(ct$I1, ct$I2, gamma)
   kappa <- gamma / (1 + gamma)
@@ -411,9 +443,10 @@ riposte_adaptive_pvalue <- function(y, gamma = 1, lambda = c(1 / 3, 2 / 3), scan
     cr <- riposte_adaptive_pick(g, a)
     if (is.null(cr)) next
     union <- union | B1m >= cr$kB | Tm >= cr$kT
-    if (ct$B1 >= cr$kB || ct$T >= cr$kT) return(min(1, sum(pr[union])))
+    if (ct$B1 >= cr$kB || ct$T >= cr$kT)
+      return(list(p.value = min(1, sum(pr[union])), smallest_level = a))
   }
-  1
+  list(p.value = 1, smallest_level = 1)
 }
 
 #' Exact adaptive test for matched pairs (Brown + Noether)

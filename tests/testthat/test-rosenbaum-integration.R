@@ -213,3 +213,45 @@ test_that("the printed adaptive test shows its decision at alpha next to its p-v
   expect_match(paste(utils::capture.output(print(fit2)), collapse = "\n"),
                "rejects at alpha = 0.05: no", fixed = TRUE)
 })
+
+test_that("Rosenbaum's p-value is the smallest level at which his adaptive test rejects", {
+  ## Rosenbaum (2012b, Annals, p. 100): "The P-value ... for the adaptive test is the
+  ## smallest alpha in (4)-(6) that leads to rejection." Check it against a scan of
+  ## riposte_adaptive_test() over every level at which a rejection region has its size.
+  set.seed(40)
+  for (rep in 1:4) for (gamma in c(1, 2)) {
+    y <- stats::rnorm(15) + 0.6
+    ct <- riposte_adaptive_counts(y)
+    g <- riposte_adaptive_grid(ct$I1, ct$I2, gamma)
+    levels <- sort(unique(g$U[g$U > 0 & g$U < 1]))
+    rejects <- vapply(levels, function(a) isTRUE(tryCatch(
+      riposte_adaptive_test(y, gamma, alpha = a)$reject, error = function(e) FALSE)), logical(1))
+    expected <- if (any(rejects)) min(levels[rejects]) else 1
+    expect_equal(riposte_adaptive_smallest_level(y, gamma), expected,
+                 label = paste("sample", rep, "gamma", gamma))
+  }
+})
+
+test_that("Rosenbaum's adaptive p-value and riposte's differ where his regions are not nested", {
+  ## The 11-pair outcome with the four largest differences positive: Rosenbaum's
+  ## p-value is 16/256, riposte's is 20/256.
+  y <- c(-(1:7), 8:11)
+  expect_equal(riposte_adaptive_smallest_level(y), 16/256)
+  expect_equal(riposte_adaptive_pvalue(y), 20/256)
+  ## Why riposte prints its own: over all 2^11 equally likely sign patterns, Rosenbaum's
+  ## p-value is at or below 16/256 with chance 20/256, more than 16/256.
+  S <- as.matrix(expand.grid(rep(list(c(-1, 1)), 11)))
+  rp <- apply(S, 1, function(s) riposte_adaptive_smallest_level(s * seq_len(11)))
+  expect_equal(mean(rp <= 16/256 + 1e-12), 20/256)
+})
+
+test_that("riposte_test() returns and prints Rosenbaum's adaptive p-value beside its own", {
+  y <- c(-(1:7), 8:11)
+  d <- data.frame(pair = rep(seq_along(y), each = 2), z = rep(0:1, length(y)),
+                  y = as.vector(rbind(0, y)))
+  fit <- riposte_test(y ~ z | pair, d, statistic = "adaptive")
+  expect_equal(fit$p.value, 20/256)
+  expect_equal(fit$adaptive$rosenbaum_p, 16/256)
+  expect_match(paste(utils::capture.output(print(fit)), collapse = "\n"),
+               "Rosenbaum's p-value (smallest level that rejects) = 0.0625", fixed = TRUE)
+})

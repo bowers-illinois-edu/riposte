@@ -32,7 +32,8 @@ is the probability, under the sensitivity bound, of counts whose smallest
 rejecting level is at most the observed \verb{alpha*}, which is the probability of the
 union of the rejection regions at every level up to \verb{alpha*}. It is exact at
 \code{gamma = 1} and an upper bound for \code{gamma > 1}, so \code{P(p.value <= a) <= a}. When
-the regions are nested it is at most \verb{alpha*}.
+the regions are nested it is at most \verb{alpha*}. Rosenbaum (2012, p. 100) reports
+\verb{alpha*} itself as the p-value; \code{\link[=riposte_adaptive_smallest_level]{riposte_adaptive_smallest_level()}} returns it.
 }
 \details{
 The chance of each rejection region is computed as 1 minus the chance of the
