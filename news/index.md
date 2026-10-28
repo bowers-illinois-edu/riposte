@@ -4,17 +4,18 @@
 
 - [`riposte_adaptive_smallest_level()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_smallest_level.md)
   returns Rosenbaum’s own p-value for the exact adaptive test: the
-  smallest level at which the test, with cutoffs chosen by
-  conditions (4) to (6) of the paper, rejects (Annals of Applied
-  Statistics 6:83-105, p. 100). Because the cutoffs are chosen
-  separately at each level, this number can fall at or below a level
-  more often than that level allows.
+  smallest level at which the test rejects, with its cutoffs chosen by
+  conditions (4) to (6) of the paper (Annals of Applied Statistics
+  6:83-105, p. 100). Rosenbaum chooses the cutoffs separately at each
+  level, so this number can fall at or below a level more often than
+  that level allows.
   [`riposte_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_test.md)
   keeps
   [`riposte_adaptive_pvalue()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_pvalue.md)
   as its p-value, returns Rosenbaum’s as `adaptive$rosenbaum_p`, and
   prints both.
-- The matched-pair functions are in the pkgdown reference index.
+- The reference page of the package website lists the matched-pair
+  functions.
 
 ## riposte 0.0.0.9010
 
