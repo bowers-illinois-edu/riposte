@@ -118,7 +118,7 @@ riposte_minp_control(block = list(cosine = riposte_cosine))
 #> {
 #>     cos(pi * rank(y, ties.method = "average")/(length(y) + 1))
 #> }
-#> <bytecode: 0x5cc8a0261e20>
+#> <bytecode: 0x635f696e0868>
 #> <environment: namespace:riposte>
 #> 
 #> 

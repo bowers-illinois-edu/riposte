@@ -303,10 +303,11 @@ by_site$p.value
 #> [1] 0.004
 ```
 
-The rank’s own p-value, `rank`, adds the sites’ comparisons and is
-large. The block statistic of the rank, `block_rank`, squares them first
-and is small. Bowers and Burton use the cosine of the within-block rank
-as the score of their block statistic, which
+The rank’s own p-value (`rank`) comes from a statistic that adds the
+sites’ comparisons, and it is large. The block statistic of the rank
+(`block_rank`) squares each site’s comparison first, and its p-value is
+small. Bowers and Burton use the cosine of the within-block rank as the
+score of their block statistic, which
 `riposte_minp_control(block = list(cosine = riposte_cosine))` asks for.
 With one block, or with blocks of two units, the block statistic cannot
 add anything, and riposte leaves it out with a message.

@@ -272,11 +272,11 @@ the paper’s numbers:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/riposte_test.html">riposte_test</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">Z</span>, data <span class="op">=</span> <span class="va">wal</span>, statistic <span class="op">=</span> <span class="st">"cauchy"</span>, engine <span class="op">=</span> <span class="st">"asymptotic"</span>,</span>
 <span>             cauchy_cap <span class="op">=</span> <span class="fl">0.999</span><span class="op">)</span><span class="op">$</span><span class="va">p.value</span></span>
 <span><span class="co">#&gt; [1] 0.9932365</span></span></code></pre></div>
-<p>On these data the cap does not help the combination. The max
+<p>On these data the capped combined p-value is close to 1. The max
 distance’s term of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mn>318</mn></mrow><annotation encoding="application/x-tex">-318</annotation></semantics></math>
 outweighs the terms of the three p-values near 0.03, which are each
-about 10, so the capped combined p-value is close to 1.</p>
+about 10.</p>
 </div>
 <div class="section level2">
 <h2 id="what-the-truncation-level-changes">What the truncation level changes<a class="anchor" aria-label="anchor" href="#what-the-truncation-level-changes"></a>

@@ -168,9 +168,9 @@ riposte_test(Y ~ Z, data = wal, statistic = "cauchy", engine = "asymptotic",
 #> [1] 0.9932365
 ```
 
-On these data the cap does not help the combination. The max distance’s
-term of $`-318`$ outweighs the terms of the three p-values near 0.03,
-which are each about 10, so the capped combined p-value is close to 1.
+On these data the capped combined p-value is close to 1. The max
+distance’s term of $`-318`$ outweighs the terms of the three p-values
+near 0.03, which are each about 10.
 
 ## What the truncation level changes
 
