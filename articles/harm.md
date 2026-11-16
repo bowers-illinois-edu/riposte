@@ -188,7 +188,8 @@ households would make them. That two-sided test gives
 ``` r
 
 two_sided <- riposte_test(food ~ strict | office, data = pilot,
-                          representations = low, nresample = 999, seed = 1)
+                          representations = low, statistic = "screen",
+                          nresample = 999, seed = 1)
 two_sided$p.value
 #> [1] 0.156
 ```
@@ -209,8 +210,8 @@ at least the observed one.
 ``` r
 
 one_sided <- riposte_test(food ~ strict | office, data = pilot,
-                          representations = low, alternative = "less",
-                          nresample = 999, seed = 1)
+                          representations = low, statistic = "max",
+                          alternative = "less", nresample = 999, seed = 1)
 one_sided
 #> riposte test of the sharp null of no effect
 #>   800 units in 20 blocks; 999 re-randomizations
@@ -291,11 +292,11 @@ run_pilot <- function(change) {
   food[changed] <- food[changed] + change
   d <- data.frame(food = food, strict = strict, office = office)
   c(lower_mean = riposte_test(food ~ strict | office, data = d,
-                              representations = raw, alternative = "less",
-                              nresample = 499)$p.value,
+                              representations = raw, statistic = "max",
+                              alternative = "less", nresample = 499)$p.value,
     lower_tail = riposte_test(food ~ strict | office, data = d,
-                              representations = low, alternative = "less",
-                              nresample = 499)$p.value)
+                              representations = low, statistic = "max",
+                              alternative = "less", nresample = 499)$p.value)
 }
 
 set.seed(3)
@@ -331,8 +332,8 @@ great deal, uses the scores that weight the top of each office,
 
 high <- riposte_poly_reps(c(5, 14, 41))
 p_help <- riposte_test(food ~ strict | office, data = pilot,
-                       representations = high, alternative = "greater",
-                       nresample = 999, seed = 1)$p.value
+                       representations = high, statistic = "max",
+                       alternative = "greater", nresample = 999, seed = 1)$p.value
 p_help
 #> [1] 0.45
 ```
@@ -347,7 +348,7 @@ for both ends into one two-sided test:
 ``` r
 
 p_both <- riposte_test(food ~ strict | office, data = pilot,
-                       representations = c(low, high),
+                       representations = c(low, high), statistic = "screen",
                        nresample = 999, seed = 1)$p.value
 p_both
 #> [1] 0.268

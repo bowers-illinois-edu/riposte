@@ -1,3 +1,0 @@
-# riposte
-
-@POINT.md

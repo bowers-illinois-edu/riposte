@@ -67,6 +67,14 @@ sensitivity bound for hidden bias.
 - [`riposte_adaptive_smallest_level()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_smallest_level.md)
   : Rosenbaum's p-value for the exact adaptive test
 
+## Min-p settings
+
+How the min-p, the default combination, computes the p-values it
+combines.
+
+- [`riposte_minp_control()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_minp_control.md)
+  : Settings for the min-p combination
+
 ## Combination screen
 
 Choosing or blending the quadratic and the Cauchy from the conditioning

@@ -1,5 +1,44 @@
 # Changelog
 
+## riposte 0.0.0.9012
+
+- The min-p is now
+  [`riposte_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_test.md)’s
+  default statistic, as the paper (Bowers and Burton) recommends. For a
+  two-sided test it takes the smallest of seven p-values at the observed
+  assignment and at every re-randomization: each of the six default
+  representations alone and the quadratic combination of the six. Its
+  p-value is the share of assignments whose smallest p-value is at most
+  the observed one. Before this version the default was the screen,
+  which `statistic = "screen"` still gives. A one-sided test without a
+  named statistic is now the min-p over the six one-sided p-values.
+  Before, it was the max. Under `engine = "saddlepoint"`, which has no
+  min-p, the default is still the screen.
+- [`riposte_minp_control()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_minp_control.md),
+  passed as `minp =`, sets how each p-value inside the min-p is computed
+  and whether the quadratic combination is one of them.
+  `pvalue = "midp"` (the default) uses mid-p values, as before.
+  `pvalue = "randomization"` uses ordinary randomization p-values, for
+  which the min-p’s p-value is at most K times the smallest of its K
+  p-values, so the min-p rejects at level alpha whenever one of them is
+  at or below alpha / K. With mid-p values that bound can fail, and the
+  min-p’s p-value is at most 2K times the smallest mid-p value instead.
+  `pvalue = "asymptotic"` uses the normal and chi-square tails, as the
+  paper’s code does. The level is exact under all three, because the
+  smallest p-value is chosen again at every re-randomization.
+  `quadratic = NULL` (the default) includes the quadratic combination
+  for a two-sided test and leaves it out for a one-sided test.
+  `quadratic = TRUE` with a one-sided alternative is an error, because
+  the quadratic combination responds to departures in both directions.
+- With covariance adjustment, every p-value inside the min-p now
+  measures each treated sum’s departure from its average over the
+  observed and redrawn assignments, as the max and the quadratic
+  combination already did. Before, the min-p measured departures from
+  zero, so its adjusted results change slightly.
+- Covariance-adjusted min-p results now include `component_p`.
+- The website build leaves out `POINT.md`, `CLAUDE.md`, and
+  `MINP_PLAN.md`, working notes that earlier builds published as pages.
+
 ## riposte 0.0.0.9011
 
 - [`riposte_adaptive_smallest_level()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_adaptive_smallest_level.md)
@@ -313,7 +352,7 @@
   approximation, supports only `statistic = "cauchy"` without `adjust`
   (the quadratic and max need a multivariate saddlepoint not yet built),
   and is reached through
-  [`requireNamespace("fastperm")`](https://github.com/bowers-illinois-edu/fastperm),
+  [`requireNamespace("fastperm")`](https://bowers-illinois-edu.github.io/fastperm/),
   so it adds no formal dependency.
 
 ## riposte 0.0.0.9000

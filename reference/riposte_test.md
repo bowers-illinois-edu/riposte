@@ -10,10 +10,11 @@ riposte_test(
   data,
   blocks = NULL,
   clusters = NULL,
-  statistic = c("screen", "quadratic", "cauchy", "max", "minp", "hybrid", "adaptive"),
+  statistic = c("minp", "screen", "quadratic", "cauchy", "max", "hybrid", "adaptive"),
   representations = riposte_reps_default(),
   nresample = 1999L,
   screen = riposte_screen_control(),
+  minp = riposte_minp_control(),
   adjust = NULL,
   learner = NULL,
   adjust_refit = TRUE,
@@ -58,22 +59,28 @@ riposte_test(
 
 - statistic:
 
-  which combination to use, spelled in full: `"screen"` (default),
-  `"quadratic"`, `"cauchy"`, `"max"`, `"minp"`, `"hybrid"`, or
-  `"adaptive"`. `"minp"` is single-step min-p: at every re-randomization
-  it takes each representation's mid-p value and keeps the smallest, and
-  its p-value is the share of re-randomizations whose smallest value is
-  at most the observed one. It gives the same p-value as `"max"` when
-  every representation's statistic has the same null distribution, and
-  differs when one takes few values. Each representation's most extreme
-  re-randomization ties for the smallest mid-p value, so the min-p
-  p-value cannot fall below about the number of representations divided
-  by `nresample + 1`: 0.003 for the default six with 1999
-  re-randomizations, but 0.12 with 49. The hybrid is the Cauchy
-  combination of each representation's own p-value and the quadratic's
-  p-value, all with equal weight (seven p-values for the default six
-  representations). With a one-sided `alternative`, only `"max"` (the
-  default then), `"minp"`, and `"cauchy"` are available.
+  which combination to use, spelled in full: `"minp"` (default),
+  `"screen"`, `"quadratic"`, `"cauchy"`, `"max"`, `"hybrid"`, or
+  `"adaptive"`. `"minp"` is single-step min-p, the test the paper
+  recommends. At the observed assignment and at every re-randomization
+  it computes each representation's p-value and, for a two-sided test,
+  the quadratic combination's (seven p-values for the default six
+  representations), and keeps the smallest. Its p-value is the share of
+  assignments whose smallest p-value is at most the observed one. `minp`
+  sets how the p-values are computed and whether the quadratic
+  combination is one of them; see
+  [`riposte_minp_control()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_minp_control.md).
+  With the default mid-p values, each p-value's most extreme
+  re-randomization ties for the smallest value, so the min-p p-value
+  cannot fall below about the number of p-values divided by
+  `nresample + 1`: 0.0035 for seven with 1999 re-randomizations, but
+  0.14 with 49. The hybrid is the Cauchy combination of each
+  representation's own p-value and the quadratic's p-value, all with
+  equal weight. With a one-sided `alternative`, only `"minp"` (the
+  default then, without the quadratic combination), `"max"`, and
+  `"cauchy"` are available. Under `engine = "saddlepoint"` the default
+  is `"screen"`, because that engine has no min-p; under
+  `engine = "asymptotic"` a statistic must be named.
 
 - representations:
 
@@ -91,6 +98,14 @@ riposte_test(
   a
   [`riposte_screen_control()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_screen_control.md)
   list, used when `statistic = "screen"`.
+
+- minp:
+
+  a
+  [`riposte_minp_control()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_minp_control.md)
+  list, used when `statistic = "minp"`: how each p-value inside the
+  min-p is computed (`pvalue`) and whether the quadratic combination is
+  one of them (`quadratic`).
 
 - adjust:
 
@@ -230,7 +245,8 @@ permutation count. Cauchy results from this engine also include
 `component_p`, the individual chi-square p-values, and hybrid results
 add the quadratic's. With `engine = "permute"`, hybrid results include
 `component_p`, the seven observed mid-p values, and min-p results
-include the representations' observed mid-p values.
+include `component_p`, the observed p-values it combined, and `minp`,
+the rule and whether the quadratic combination was included.
 
 ## Details
 
@@ -301,13 +317,24 @@ d <- data.frame(block = factor(rep(1:4, each = 10)),
                 treated = rep(rep(0:1, each = 5), times = 4))
 d$outcome <- rnorm(40) + 0.8 * d$treated
 
-# the six default representations, combined by the screen
+# the default: the min-p over the six default representations' p-values and
+# the quadratic combination's
 riposte_test(outcome ~ treated | block, data = d, nresample = 499, seed = 1)
 #> riposte test of the sharp null of no effect
 #>   40 units in 4 blocks; 499 re-randomizations
-#>   screen (shrink, lambda = 0.008); condition number 130.6
-#>   combination: quadratic
-#>   statistic = 7.8875,  p-value = 0.2280
+#>   combination: minp
+#>   min-p over 7 p-values (mid-p values; quadratic combination included)
+#>   statistic = 0.0070,  p-value = 0.0420
+
+# the same min-p with randomization p-values inside, for which the min-p's
+# p-value is at most 7 times the smallest of the seven
+riposte_test(outcome ~ treated | block, data = d, nresample = 499, seed = 1,
+             minp = riposte_minp_control(pvalue = "randomization"))
+#> riposte test of the sharp null of no effect
+#>   40 units in 4 blocks; 499 re-randomizations
+#>   combination: minp
+#>   min-p over 7 p-values (randomization p-values; quadratic combination included)
+#>   statistic = 0.0080,  p-value = 0.0420
 
 # one representation, the raw outcome: every statistic then gives the same
 # permutation test, with the p-value of the difference in means within blocks
@@ -316,9 +343,9 @@ riposte_test(outcome ~ treated | block, data = d, representations = raw,
              nresample = 499, seed = 1)
 #> riposte test of the sharp null of no effect
 #>   40 units in 4 blocks; 499 re-randomizations
-#>   screen (shrink, lambda = 0.000); condition number 1.0
-#>   combination: quadratic
-#>   statistic = 6.8595,  p-value = 0.0080
+#>   combination: minp
+#>   min-p over 2 p-values (mid-p values; quadratic combination included)
+#>   statistic = 0.0070,  p-value = 0.0080
 
 # one-sided: are treated outcomes higher?
 riposte_test(outcome ~ treated | block, data = d, representations = raw,
@@ -330,13 +357,14 @@ riposte_test(outcome ~ treated | block, data = d, representations = raw,
 #>   alternative: greater (treated-score sums above their re-randomization mean)
 #>   statistic = 2.6191,  p-value = 0.0040
 
-# single-step min-p across the six default representations
-riposte_test(outcome ~ treated | block, data = d, statistic = "minp",
+# the screen, which chooses between the quadratic and the Cauchy combination
+riposte_test(outcome ~ treated | block, data = d, statistic = "screen",
              nresample = 499, seed = 1)
 #> riposte test of the sharp null of no effect
 #>   40 units in 4 blocks; 499 re-randomizations
-#>   combination: minp
-#>   statistic = 0.0070,  p-value = 0.0360
+#>   screen (shrink, lambda = 0.008); condition number 130.6
+#>   combination: quadratic
+#>   statistic = 7.8875,  p-value = 0.2280
 
 # matched pairs: Rosenbaum's (2012) tests. A pair is a block of two units with
 # one treated. gamma = 1 tests the sharp null by random sign flips (one-sided)
