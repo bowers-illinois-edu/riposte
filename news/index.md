@@ -1,5 +1,78 @@
 # Changelog
 
+## riposte 0.0.0.9016
+
+- `riposte_test(engine = "asymptotic")` now runs the min-p, so the
+  default statistic works with the large-sample engine. Every p-value of
+  the min-p comes from the normal or chi-square formula, and the
+  observed smallest is referred to `nresample` draws of the standardized
+  statistics from their joint normal approximation instead of to redrawn
+  assignments. The quadratic combination is a function of the same
+  standardized statistics, and a block statistic is a sum of squared
+  per-block standardized sums, which are jointly normal with them, so
+  every p-value of the min-p is computed from each draw. The work per
+  draw does not grow with the number of units. With the six single
+  p-values only it is the large-sample max-T, up to the Monte Carlo
+  error of the draws. `seed` makes it reproducible.
+
+## riposte 0.0.0.9015
+
+- riposte now draws re-randomizations a batch at a time and keeps only
+  each assignment’s statistics, so memory no longer grows with
+  `nresample`. Before, it held every redrawn assignment at once: about
+  32 GB at 100,000 units and 40,000 re-randomizations. The option
+  `riposte.batch_entries` sets the largest batch in matrix entries
+  (default 1e7, about 80 MB). The batches are the same assignments in
+  the same order as before, so every p-value for a given seed is
+  unchanged.
+
+## riposte 0.0.0.9014
+
+- `riposte_test(cauchy_cap = 0.999)` applies the paper’s rule to the
+  large-sample Cauchy combination and hybrid: every p-value above the
+  cap enters as the cap, and Liu and Xie’s combination follows. A reader
+  can then reproduce the paper’s Cauchy and hybrid p-values. The default
+  is still the truncation of Gui, Jiang, and Wang at 0.9. On the paper’s
+  example of seven p-values the cap gives 0.0030 and the truncation
+  0.0021.
+  [`riposte_capped_cauchy()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_capped_cauchy.md)
+  computes the capped combination of any p-values.
+- `riposte_test(statistic = "max", engine = "asymptotic")` refers the
+  largest standardized statistic to the joint normal distribution of the
+  standardized statistics, as Rosenbaum (2012) does and as the paper’s
+  footnote in Section 4.4 says the software does. It works in every
+  design, two-sided or one-sided, and needs the mvtnorm package. Before,
+  only the matched-pair tests had it.
+- With covariance adjustment, the Cauchy combination and the hybrid now
+  measure each treated sum’s departure from its average over the
+  observed and redrawn assignments, as the min-p, the max, and the
+  quadratic combination do. Their adjusted p-values change slightly.
+  Without adjustment nothing changes.
+
+## riposte 0.0.0.9013
+
+- `riposte_minp_control(block = )` adds a block statistic to the min-p
+  for each score it names, one more p-value each. The block statistic
+  standardizes the score’s treated sum within each block, squares it,
+  and adds the squares over the blocks, so a treatment that raises
+  outcomes in some blocks and lowers them in others does not cancel, as
+  it can in every statistic that adds the blocks’ comparisons first.
+  `block` takes the names of representations (for example
+  `block = "rank"`) or a named list of score functions. Its p-value
+  follows the min-p’s `pvalue` rule, and under `"asymptotic"` it is the
+  chi-square tail on the number of blocks in the sum, as in the paper’s
+  code. The default adds no block statistic. riposte leaves it out, with
+  a message, when the design has one block or only blocks of two units,
+  where it cannot add anything. It has no one-sided form and is not yet
+  available with covariance adjustment; both requests stop with an error
+  that says why.
+- [`riposte_cosine()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_cosine.md)
+  is the paper’s cosine score, the cosine of pi times the within-block
+  rank divided by the block size plus one.
+  `riposte_minp_control(block = list(cosine = riposte_cosine))` gives
+  the paper’s min-p over eight p-values for a block-randomized
+  experiment.
+
 ## riposte 0.0.0.9012
 
 - The min-p is now

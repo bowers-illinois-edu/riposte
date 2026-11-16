@@ -15,7 +15,7 @@ and how each is computed."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9012</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,7 +55,8 @@ and how each is computed.</p>
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">riposte_minp_control</span><span class="op">(</span></span>
 <span>  pvalue <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"midp"</span>, <span class="st">"randomization"</span>, <span class="st">"asymptotic"</span><span class="op">)</span>,</span>
-<span>  quadratic <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  quadratic <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  block <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -87,11 +88,26 @@ representation's departure from its re-randomization mean, so it responds
 to departures in both directions; asking for it with a one-sided
 <code>alternative</code> is an error.</p></dd>
 
+
+<dt id="arg-block">block<a class="anchor" aria-label="anchor" href="#arg-block"></a></dt>
+<dd><p>scores whose block statistic joins the min-p, one more p-value
+each. The block statistic standardizes a score's treated sum within each
+block, squares it, and adds the squares over the blocks, so a treatment that
+raises outcomes in some blocks and lowers them in others does not cancel.
+Give the names of representations in <code>representations</code> (for example
+<code>block = "rank"</code>) or a named list of score functions (for example
+<code>block = list(cosine = riposte_cosine)</code>, the paper's cosine statistic).
+<code>NULL</code> (default) adds none. Its p-value follows <code>pvalue</code>; under
+<code>"asymptotic"</code> it is the chi-square tail on the number of blocks in the
+sum. It has no one-sided form, is not yet available with covariance
+adjustment, and is left out, with a message, when the design has one block
+or only blocks of two units, where it cannot add anything.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>a list of class <code>riposte_minp_control</code> with elements <code>pvalue</code> and
-<code>quadratic</code>, for the <code>minp</code> argument of <code><a href="riposte_test.html">riposte_test()</a></code>.</p>
+    <p>a list of class <code>riposte_minp_control</code> with elements <code>pvalue</code>,
+<code>quadratic</code>, and <code>block</code>, for the <code>minp</code> argument of <code><a href="riposte_test.html">riposte_test()</a></code>.</p>
     </div>
 
     <div class="section level2">
@@ -103,6 +119,9 @@ to departures in both directions; asking for it with a one-sided
 <span class="r-out co"><span class="r-pr">#&gt;</span> $quadratic</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $block</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "riposte_minp_control"</span>
 <span class="r-in"><span><span class="fu">riposte_minp_control</span><span class="op">(</span>pvalue <span class="op">=</span> <span class="st">"randomization"</span><span class="op">)</span></span></span>
@@ -110,6 +129,9 @@ to departures in both directions; asking for it with a one-sided
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "randomization"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $quadratic</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $block</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
@@ -120,6 +142,28 @@ to departures in both directions; asking for it with a one-sided
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $quadratic</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $block</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "riposte_minp_control"</span>
+<span class="r-in"><span><span class="fu">riposte_minp_control</span><span class="op">(</span>block <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>cosine <span class="op">=</span> <span class="va">riposte_cosine</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $pvalue</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "midp"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $quadratic</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $block</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $block$cosine</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> function (y) </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> {</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     cos(pi * rank(y, ties.method = "average")/(length(y) + 1))</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;bytecode: 0x5cc8a0261e20&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;environment: namespace:riposte&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> attr(,"class")</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "riposte_minp_control"</span>

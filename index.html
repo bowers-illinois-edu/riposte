@@ -21,7 +21,7 @@
 
     <a class="navbar-brand me-2" href="index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9012</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -111,7 +111,7 @@
 <span>             representations <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>raw <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">y</span><span class="op">)</span> <span class="va">y</span><span class="op">)</span>,</span>
 <span>             statistic <span class="op">=</span> <span class="st">"max"</span>, alternative <span class="op">=</span> <span class="st">"greater"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 <p>On these data, where treatment changes the spread and not the mean, the raw outcome alone gives p = 0.53 two-sided, while the blocked Cauchy combination of all six representations above gives p = 0.004.</p>
-<p>Both engines support both designs and both combinations shown above. The asymptotic engine uses no random draws and ignores <code>nresample</code> and <code>seed</code>. It requires <code>statistic = "quadratic"</code>, <code>"cauchy"</code>, or <code>"hybrid"</code> and no covariance adjustment. The min-p (the default), the screen, and the max need the permutation engine. riposte has no large-sample version of the min-p yet. <code>coin</code> is used for comparison tests, not required to run these approximations. <code><a href="reference/riposte_components.html">riposte_components()</a></code> continues to report permutation mid-p values, even when used alongside an asymptotic combined test.</p>
+<p>Both engines support both designs and both combinations shown above. The asymptotic engine runs the min-p (the default), <code>"quadratic"</code>, <code>"cauchy"</code>, <code>"hybrid"</code>, or <code>"max"</code>, without covariance adjustment. Its min-p refers the smallest p-value to draws from the joint normal approximation, so it uses <code>nresample</code> and <code>seed</code>. The screen needs the permutation engine. <code>coin</code> is used for comparison tests, not required to run these approximations. <code><a href="reference/riposte_components.html">riposte_components()</a></code> continues to report permutation mid-p values, even when used alongside an asymptotic combined test.</p>
 </div>
 <div class="section level2">
 <h2 id="status">Status<a class="anchor" aria-label="anchor" href="#status"></a>

@@ -23,6 +23,7 @@ riposte_test(
   engine = c("permute", "saddlepoint", "asymptotic"),
   alternative = c("two.sided", "greater", "less"),
   cauchy_truncation = 0.9,
+  cauchy_cap = NULL,
   ...,
   gamma = NULL,
   alpha = 0.05
@@ -79,8 +80,7 @@ riposte_test(
   equal weight. With a one-sided `alternative`, only `"minp"` (the
   default then, without the quadratic combination), `"max"`, and
   `"cauchy"` are available. Under `engine = "saddlepoint"` the default
-  is `"screen"`, because that engine has no min-p; under
-  `engine = "asymptotic"` a statistic must be named.
+  is `"screen"`, because that engine has no min-p.
 
 - representations:
 
@@ -90,8 +90,14 @@ riposte_test(
 
 - nresample:
 
-  number of re-randomizations for the Monte-Carlo combinations. Ignored
-  for `engine = "asymptotic"`.
+  number of re-randomizations for the Monte-Carlo combinations. With
+  `engine = "asymptotic"` it is the number of draws from the joint
+  normal approximation for the min-p, and other statistics ignore it.
+  riposte draws re-randomizations a batch at a time and keeps only each
+  one's statistics, so memory does not grow with `nresample`. A batch
+  holds at most `getOption("riposte.batch_entries")` entries of the
+  units-by-assignments matrix (1e7 by default, about 80 MB); the batch
+  size changes memory use and nothing else.
 
 - screen:
 
@@ -140,8 +146,8 @@ riposte_test(
 
 - seed:
 
-  optional integer seed (L'Ecuyer-CMRG) for reproducibility. Ignored for
-  `engine = "asymptotic"`, which uses no random draws.
+  optional integer seed (L'Ecuyer-CMRG) for reproducibility. With
+  `engine = "asymptotic"` only the min-p uses random draws.
 
 - engine:
 
@@ -156,18 +162,28 @@ riposte_test(
   `cauchy_truncation`. For `statistic = "hybrid"`, it adds the
   chi-square p-value of the quadratic to those p-values before
   combining. These are approximations, available without `adjust`, and
-  do not require `coin` or `fastperm`. Set `statistic` explicitly to
-  `"quadratic"`, `"cauchy"`, or `"hybrid"`; the max and screen
-  approximations are not implemented. `"saddlepoint"` computes the
-  combination with no re-randomization, via `fastperm`: the unadjusted
-  Cauchy (each representation's marginal saddlepoint p-value combined by
-  the Liu-Xie analytic tail), the unadjusted quadratic (the omnibus `Q`
-  referred to fastperm's multivariate saddlepoint M2, feasible for a few
-  representations), or `"screen"`, which uses the permutation `Sigma` to
-  choose between them (and to regularize a rank-deficient metric). It is
-  an approximation, supports `statistic` other than `"max"` without
-  `adjust`, and requires the `fastperm` package (the quadratic needs a
-  `fastperm` with `fastperm_spa_quadratic`).
+  do not require `coin` or `fastperm`. For `statistic = "max"`, it
+  refers the largest standardized statistic (the largest absolute one
+  for a two-sided test) to the joint normal distribution of the
+  standardized statistics, with their null correlation matrix, as
+  Rosenbaum (2012a) does; this needs the `mvtnorm` package. For
+  `statistic = "minp"`, the default, it computes every p-value of the
+  min-p from the normal and chi-square formulas and refers the smallest
+  to `nresample` draws of the standardized statistics (and of the
+  per-block sums of any block statistic) from their joint normal
+  approximation, instead of to redrawn assignments; under the normal
+  model each formula p-value is exactly uniform, so `minp`'s `pvalue`
+  setting does not apply. The screen has no large-sample version.
+  `"saddlepoint"` computes the combination with no re-randomization, via
+  `fastperm`: the unadjusted Cauchy (each representation's marginal
+  saddlepoint p-value combined by the Liu-Xie analytic tail), the
+  unadjusted quadratic (the omnibus `Q` referred to fastperm's
+  multivariate saddlepoint M2, feasible for a few representations), or
+  `"screen"`, which uses the permutation `Sigma` to choose between them
+  (and to regularize a rank-deficient metric). It is an approximation,
+  supports `statistic` other than `"max"` without `adjust`, and requires
+  the `fastperm` package (the quadratic needs a `fastperm` with
+  `fastperm_spa_quadratic`).
 
 - alternative:
 
@@ -195,9 +211,22 @@ riposte_test(
   Jiang, and Wang (2025), so a p-value of 1 converts to \\\tan(-0.4\pi)
   = -3.08\\ rather than minus infinity; see
   [`riposte_truncated_cauchy()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_truncated_cauchy.md).
-  `1` gives Liu and Xie's untruncated combination. Used only with
-  `engine = "asymptotic"`: the re-randomization Cauchy and hybrid
-  combine mid-p values, which are never exactly 1.
+  `1` gives Liu and Xie's untruncated combination. Ignored when
+  `cauchy_cap` is given. Used only with `engine = "asymptotic"`: the
+  re-randomization Cauchy and hybrid combine mid-p values, which are
+  never exactly 1.
+
+- cauchy_cap:
+
+  optional cap for the large-sample Cauchy combination and hybrid, in
+  (0.5, 1\]: every p-value above it enters as the cap, and the p-values
+  are then combined by Liu and Xie's untruncated combination. This is
+  the rule of Bowers and Burton's code, with `cauchy_cap = 0.999`, so it
+  reproduces the paper's Cauchy and hybrid p-values; see
+  [`riposte_capped_cauchy()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_capped_cauchy.md).
+  `NULL` (default) uses `cauchy_truncation` instead. Giving both
+  `cauchy_cap` and a `cauchy_truncation` other than 1 is an error. Used
+  only with `engine = "asymptotic"`.
 
 - ...:
 
@@ -239,14 +268,15 @@ assignment included. That observed-inclusion convention makes the test's
 level exactly valid in finite samples for any `nresample` (the p-value
 estimates, rather than equals, the full-enumeration value, so it varies
 with the seed). The closed-form moments and the screen's condition
-number are exact, not Monte-Carlo. With `engine = "asymptotic"`,
-`nresample` is zero and the p-value uses the stated approximation, not a
-permutation count. Cauchy results from this engine also include
-`component_p`, the individual chi-square p-values, and hybrid results
-add the quadratic's. With `engine = "permute"`, hybrid results include
-`component_p`, the seven observed mid-p values, and min-p results
-include `component_p`, the observed p-values it combined, and `minp`,
-the rule and whether the quadratic combination was included.
+number are exact, not Monte-Carlo. With `engine = "asymptotic"`, the
+p-value uses the stated approximation, not a permutation count, and
+`nresample` is zero except for the min-p. Cauchy results from this
+engine also include `component_p`, the individual chi-square p-values,
+and hybrid results add the quadratic's. With `engine = "permute"`,
+hybrid results include `component_p`, the seven observed mid-p values,
+and min-p results include `component_p`, the observed p-values it
+combined, and `minp`, the rule and whether the quadratic combination was
+included.
 
 ## Details
 

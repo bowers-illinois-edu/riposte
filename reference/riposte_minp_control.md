@@ -11,7 +11,8 @@ p-values it combines and how each is computed.
 ``` r
 riposte_minp_control(
   pvalue = c("midp", "randomization", "asymptotic"),
-  quadratic = NULL
+  quadratic = NULL,
+  block = NULL
 )
 ```
 
@@ -43,10 +44,26 @@ riposte_minp_control(
   responds to departures in both directions; asking for it with a
   one-sided `alternative` is an error.
 
+- block:
+
+  scores whose block statistic joins the min-p, one more p-value each.
+  The block statistic standardizes a score's treated sum within each
+  block, squares it, and adds the squares over the blocks, so a
+  treatment that raises outcomes in some blocks and lowers them in
+  others does not cancel. Give the names of representations in
+  `representations` (for example `block = "rank"`) or a named list of
+  score functions (for example `block = list(cosine = riposte_cosine)`,
+  the paper's cosine statistic). `NULL` (default) adds none. Its p-value
+  follows `pvalue`; under `"asymptotic"` it is the chi-square tail on
+  the number of blocks in the sum. It has no one-sided form, is not yet
+  available with covariance adjustment, and is left out, with a message,
+  when the design has one block or only blocks of two units, where it
+  cannot add anything.
+
 ## Value
 
-a list of class `riposte_minp_control` with elements `pvalue` and
-`quadratic`, for the `minp` argument of
+a list of class `riposte_minp_control` with elements `pvalue`,
+`quadratic`, and `block`, for the `minp` argument of
 [`riposte_test()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_test.md).
 
 ## Examples
@@ -59,6 +76,9 @@ riposte_minp_control()
 #> $quadratic
 #> NULL
 #> 
+#> $block
+#> NULL
+#> 
 #> attr(,"class")
 #> [1] "riposte_minp_control"
 riposte_minp_control(pvalue = "randomization")
@@ -66,6 +86,9 @@ riposte_minp_control(pvalue = "randomization")
 #> [1] "randomization"
 #> 
 #> $quadratic
+#> NULL
+#> 
+#> $block
 #> NULL
 #> 
 #> attr(,"class")
@@ -76,6 +99,28 @@ riposte_minp_control(quadratic = FALSE)
 #> 
 #> $quadratic
 #> [1] FALSE
+#> 
+#> $block
+#> NULL
+#> 
+#> attr(,"class")
+#> [1] "riposte_minp_control"
+riposte_minp_control(block = list(cosine = riposte_cosine))
+#> $pvalue
+#> [1] "midp"
+#> 
+#> $quadratic
+#> NULL
+#> 
+#> $block
+#> $block$cosine
+#> function (y) 
+#> {
+#>     cos(pi * rank(y, ties.method = "average")/(length(y) + 1))
+#> }
+#> <bytecode: 0x5cc8a0261e20>
+#> <environment: namespace:riposte>
+#> 
 #> 
 #> attr(,"class")
 #> [1] "riposte_minp_control"

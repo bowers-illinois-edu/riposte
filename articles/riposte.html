@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9012</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -182,10 +182,13 @@ squared standardized statistic and a chi-square distribution on one
 degree of freedom. We then average the Cauchy transforms of those
 p-values and calculate the standard Cauchy upper tail. The two combined
 p-values need not equal their permutation counterparts.</p>
-<p>The asymptotic engine uses no random draws, so <code>seed</code> and
-<code>nresample</code> have no effect. Its printed result identifies the
-approximation. It supports the unadjusted quadratic, Cauchy, and hybrid
-tests. The min-p (the default), the max, the screen, and covariance
+<p>The asymptotic engine’s printed result identifies the approximation.
+It supports the unadjusted min-p, quadratic, Cauchy, hybrid, and max
+tests. Only its min-p uses random draws: it refers the smallest p-value
+to <code>nresample</code> draws from the joint normal approximation of
+the standardized statistics, and <code>seed</code> makes those draws
+reproducible. The quadratic, Cauchy, hybrid, and max ignore
+<code>seed</code> and <code>nresample</code>. The screen and covariance
 adjustment need the permutation engine. The approximations do not give
 the permutation test’s finite-sample level guarantee. In particular,
 individual scores that dominate the variance can make the normal
@@ -300,6 +303,51 @@ does not disturb the test’s exactness.</p>
 <span><span class="co">#&gt; [1] 0.001</span></span></code></pre></div>
 </div>
 <div class="section level2">
+<h2 id="effects-that-change-sign-across-blocks">Effects that change sign across blocks<a class="anchor" aria-label="anchor" href="#effects-that-change-sign-across-blocks"></a>
+</h2>
+<p>Every p-value inside the min-p over seven compares treated with
+control units within each block and then adds the comparisons over the
+blocks. When a program raises outcomes at some sites and lowers them at
+others, those comparisons have opposite signs, and their sum can be near
+zero. The block statistic squares each block’s standardized comparison
+before adding, so a gain in one block cannot cancel a loss in another.
+Naming a score in <code>riposte_minp_control(block = )</code> adds that
+score’s block statistic to the min-p as one more p-value. In this
+example the program raises outcomes at five of ten sites and lowers them
+at the other five:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">20261116</span><span class="op">)</span></span>
+<span><span class="va">site</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">10</span>, each <span class="op">=</span> <span class="fl">20</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">z_site</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">integer</a></span><span class="op">(</span><span class="fl">200</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">b</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">site</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">ix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">site</span> <span class="op">==</span> <span class="va">b</span><span class="op">)</span></span>
+<span>  <span class="va">z_site</span><span class="op">[</span><span class="va">ix</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample.int</a></span><span class="op">(</span><span class="fl">20</span>, <span class="fl">10</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">1L</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">direction</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">site</span><span class="op">)</span> <span class="op">&lt;=</span> <span class="fl">5</span>, <span class="fl">1</span>, <span class="op">-</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>outcome <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">200</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.8</span> <span class="op">*</span> <span class="va">direction</span> <span class="op">*</span> <span class="va">z_site</span>,</span>
+<span>                    treated <span class="op">=</span> <span class="va">z_site</span>, site <span class="op">=</span> <span class="va">site</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">by_site</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/riposte_test.html">riposte_test</a></span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">treated</span> <span class="op">|</span> <span class="va">site</span>, data <span class="op">=</span> <span class="va">sites</span>,</span>
+<span>                        nresample <span class="op">=</span> <span class="fl">999</span>, seed <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>                        minp <span class="op">=</span> <span class="fu"><a href="../reference/riposte_minp_control.html">riposte_minp_control</a></span><span class="op">(</span>block <span class="op">=</span> <span class="st">"rank"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">by_site</span><span class="op">$</span><span class="va">component_p</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;            raw           rank      mean_dist mean_rank_dist       max_dist </span></span>
+<span><span class="co">#&gt;          0.693          0.650          0.763          0.279          0.054 </span></span>
+<span><span class="co">#&gt;          huber      quadratic     block_rank </span></span>
+<span><span class="co">#&gt;          0.535          0.042          0.001</span></span>
+<span><span class="va">by_site</span><span class="op">$</span><span class="va">p.value</span></span>
+<span><span class="co">#&gt; [1] 0.004</span></span></code></pre></div>
+<p>The rank’s own p-value, <code>rank</code>, adds the sites’
+comparisons and is large. The block statistic of the rank,
+<code>block_rank</code>, squares them first and is small. Bowers and
+Burton use the cosine of the within-block rank as the score of their
+block statistic, which
+<code>riposte_minp_control(block = list(cosine = riposte_cosine))</code>
+asks for. With one block, or with blocks of two units, the block
+statistic cannot add anything, and riposte leaves it out with a
+message.</p>
+</div>
+<div class="section level2">
 <h2 id="rank-scores-that-weight-the-top-of-each-block">Rank scores that weight the top of each block<a class="anchor" aria-label="anchor" href="#rank-scores-that-weight-the-top-of-each-block"></a>
 </h2>
 <p>Some programs help a few people a great deal and leave the rest
@@ -329,7 +377,7 @@ Its default,
 = 2, 7, 12, 17, 22, is the set in Bowers and Burton’s rank-score tables.
 Here are the five scores on the spread-change experiment above, combined
 and one at a time:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/riposte_test.html">riposte_test</a></span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">treated</span> <span class="op">|</span> <span class="va">block</span>, data <span class="op">=</span> <span class="va">dat</span>,</span>
 <span>             representations <span class="op">=</span> <span class="fu"><a href="../reference/riposte_poly_reps.html">riposte_poly_reps</a></span><span class="op">(</span><span class="op">)</span>, nresample <span class="op">=</span> <span class="fl">999</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="co">#&gt; riposte test of the sharp null of no effect</span></span>
@@ -386,7 +434,7 @@ about
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mi>b</mi></msub><mi>/</mi><mi>m</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">n_b/m - 1</annotation></semantics></math>.
 The code below computes the exact average for blocks of 30, the size in
 our example:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nb</span> <span class="op">&lt;-</span> <span class="fl">30</span></span>
 <span><span class="va">k</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">nb</span><span class="op">)</span></span>
 <span><span class="va">zetas</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">7</span>, <span class="fl">12</span>, <span class="fl">14</span>, <span class="fl">22</span>, <span class="fl">29</span><span class="op">)</span></span>
@@ -430,7 +478,7 @@ by the <code>exact</code> row of the table above. Within one block, the
 correlation of two treated-unit sums across re-randomizations equals the
 correlation of the two score vectors, so you can check any candidate set
 for your own block size before running a test:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">score_cor</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">zetas</span>, <span class="va">nb</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">k</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">nb</span><span class="op">)</span></span>
 <span>  <span class="va">S</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">zetas</span>, <span class="kw">function</span><span class="op">(</span><span class="va">zeta</span><span class="op">)</span> <span class="fu"><a href="../reference/riposte_poly_scores.html">riposte_poly_scores</a></span><span class="op">(</span><span class="va">k</span>, <span class="va">zeta</span><span class="op">)</span><span class="op">)</span></span>
@@ -465,7 +513,7 @@ shrinking the correlation matrix toward the identity until that ratio is
 100 (the <code>threshold</code> of
 <code><a href="../reference/riposte_screen_control.html">riposte_screen_control()</a></code>). The set 2, 5, 14 needs no
 shrinking. A set chosen this way, for these blocks of 30:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/riposte_test.html">riposte_test</a></span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">treated</span> <span class="op">|</span> <span class="va">block</span>, data <span class="op">=</span> <span class="va">dat</span>,</span>
 <span>             representations <span class="op">=</span> <span class="fu"><a href="../reference/riposte_poly_reps.html">riposte_poly_reps</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">5</span>, <span class="fl">14</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>             nresample <span class="op">=</span> <span class="fl">999</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
@@ -498,7 +546,7 @@ When every block has the same size, the two are exactly proportional. So
 leave
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ζ</mi><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">\zeta = 2</annotation></semantics></math>
 out when you add polynomial scores to the six:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/riposte_test.html">riposte_test</a></span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">treated</span> <span class="op">|</span> <span class="va">block</span>, data <span class="op">=</span> <span class="va">dat</span>,</span>
 <span>             representations <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="../reference/riposte_reps_default.html">riposte_reps_default</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>                                 <span class="fu"><a href="../reference/riposte_poly_reps.html">riposte_poly_reps</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">14</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -531,7 +579,7 @@ what is left. Fitting on controls only means the model can never absorb
 the treatment effect, and refitting it inside every re-randomization
 keeps the test exact for any model you choose — ridge regression by
 default, but a random forest or anything else works the same way.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dat</span><span class="op">$</span><span class="va">x1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span><span class="op">)</span>; <span class="va">dat</span><span class="op">$</span><span class="va">x2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/riposte_test.html">riposte_test</a></span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">treated</span> <span class="op">|</span> <span class="va">block</span>, data <span class="op">=</span> <span class="va">dat</span>,</span>
 <span>             adjust <span class="op">=</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>, nresample <span class="op">=</span> <span class="fl">999</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">$</span><span class="va">p.value</span></span>
@@ -558,7 +606,7 @@ are what was randomized. Tell <code>riposte</code> which units share a
 cluster and it permutes whole clusters, so the p-value reflects the
 design you actually ran. Treating the individuals as if they were
 independently randomized would overstate your certainty.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/riposte_test.html">riposte_test</a></span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">treated</span> <span class="op">|</span> <span class="va">block</span>, data <span class="op">=</span> <span class="va">dat</span>,</span>
 <span>             clusters <span class="op">=</span> <span class="st">"cluster_id"</span>, nresample <span class="op">=</span> <span class="fl">999</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 </div>

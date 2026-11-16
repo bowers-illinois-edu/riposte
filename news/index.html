@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9012</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,6 +34,30 @@
       <small>Source: <a href="https://github.com/bowers-illinois-edu/riposte/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.0.9016" id="riposte-0009016">riposte 0.0.0.9016<a class="anchor" aria-label="anchor" href="#riposte-0009016"></a></h2>
+<ul><li>
+<code>riposte_test(engine = "asymptotic")</code> now runs the min-p, so the default statistic works with the large-sample engine. Every p-value of the min-p comes from the normal or chi-square formula, and the observed smallest is referred to <code>nresample</code> draws of the standardized statistics from their joint normal approximation instead of to redrawn assignments. The quadratic combination is a function of the same standardized statistics, and a block statistic is a sum of squared per-block standardized sums, which are jointly normal with them, so every p-value of the min-p is computed from each draw. The work per draw does not grow with the number of units. With the six single p-values only it is the large-sample max-T, up to the Monte Carlo error of the draws. <code>seed</code> makes it reproducible.</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.0.9015" id="riposte-0009015">riposte 0.0.0.9015<a class="anchor" aria-label="anchor" href="#riposte-0009015"></a></h2>
+<ul><li>riposte now draws re-randomizations a batch at a time and keeps only each assignment’s statistics, so memory no longer grows with <code>nresample</code>. Before, it held every redrawn assignment at once: about 32 GB at 100,000 units and 40,000 re-randomizations. The option <code>riposte.batch_entries</code> sets the largest batch in matrix entries (default 1e7, about 80 MB). The batches are the same assignments in the same order as before, so every p-value for a given seed is unchanged.</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.0.9014" id="riposte-0009014">riposte 0.0.0.9014<a class="anchor" aria-label="anchor" href="#riposte-0009014"></a></h2>
+<ul><li>
+<code>riposte_test(cauchy_cap = 0.999)</code> applies the paper’s rule to the large-sample Cauchy combination and hybrid: every p-value above the cap enters as the cap, and Liu and Xie’s combination follows. A reader can then reproduce the paper’s Cauchy and hybrid p-values. The default is still the truncation of Gui, Jiang, and Wang at 0.9. On the paper’s example of seven p-values the cap gives 0.0030 and the truncation 0.0021. <code><a href="../reference/riposte_capped_cauchy.html">riposte_capped_cauchy()</a></code> computes the capped combination of any p-values.</li>
+<li>
+<code>riposte_test(statistic = "max", engine = "asymptotic")</code> refers the largest standardized statistic to the joint normal distribution of the standardized statistics, as Rosenbaum (2012) does and as the paper’s footnote in Section 4.4 says the software does. It works in every design, two-sided or one-sided, and needs the mvtnorm package. Before, only the matched-pair tests had it.</li>
+<li>With covariance adjustment, the Cauchy combination and the hybrid now measure each treated sum’s departure from its average over the observed and redrawn assignments, as the min-p, the max, and the quadratic combination do. Their adjusted p-values change slightly. Without adjustment nothing changes.</li>
+</ul></div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.0.9013" id="riposte-0009013">riposte 0.0.0.9013<a class="anchor" aria-label="anchor" href="#riposte-0009013"></a></h2>
+<ul><li>
+<code>riposte_minp_control(block = )</code> adds a block statistic to the min-p for each score it names, one more p-value each. The block statistic standardizes the score’s treated sum within each block, squares it, and adds the squares over the blocks, so a treatment that raises outcomes in some blocks and lowers them in others does not cancel, as it can in every statistic that adds the blocks’ comparisons first. <code>block</code> takes the names of representations (for example <code>block = "rank"</code>) or a named list of score functions. Its p-value follows the min-p’s <code>pvalue</code> rule, and under <code>"asymptotic"</code> it is the chi-square tail on the number of blocks in the sum, as in the paper’s code. The default adds no block statistic. riposte leaves it out, with a message, when the design has one block or only blocks of two units, where it cannot add anything. It has no one-sided form and is not yet available with covariance adjustment; both requests stop with an error that says why.</li>
+<li>
+<code><a href="../reference/riposte_cosine.html">riposte_cosine()</a></code> is the paper’s cosine score, the cosine of pi times the within-block rank divided by the block size plus one. <code>riposte_minp_control(block = list(cosine = riposte_cosine))</code> gives the paper’s min-p over eight p-values for a block-randomized experiment.</li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.0.0.9012" id="riposte-0009012">riposte 0.0.0.9012<a class="anchor" aria-label="anchor" href="#riposte-0009012"></a></h2>
 <ul><li>The min-p is now <code><a href="../reference/riposte_test.html">riposte_test()</a></code>’s default statistic, as the paper (Bowers and Burton) recommends. For a two-sided test it takes the smallest of seven p-values at the observed assignment and at every re-randomization: each of the six default representations alone and the quadratic combination of the six. Its p-value is the share of assignments whose smallest p-value is at most the observed one. Before this version the default was the screen, which <code>statistic = "screen"</code> still gives. A one-sided test without a named statistic is now the min-p over the six one-sided p-values. Before, it was the max. Under <code>engine = "saddlepoint"</code>, which has no min-p, the default is still the screen.</li>

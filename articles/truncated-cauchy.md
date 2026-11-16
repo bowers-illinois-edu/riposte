@@ -152,6 +152,26 @@ still count. Fang, Chang, Park, and Tseng (2023) proposed an earlier
 truncation of the same kind, replacing every p-value above 0.99 with
 0.99, and noted that p-values near 1 are common with discrete data.
 
+Bowers and Burton’s code uses a rule of that kind with a cap of 0.999:
+every p-value above 0.999 enters as 0.999, and Liu and Xie’s combination
+follows. The cap converts a p-value of 1 to $`\tan(-0.499\pi) = -318`$
+rather than $`-3.08`$, so a p-value near 1 still counts against the
+others more than it does under the truncation.
+`riposte_test(cauchy_cap = 0.999)` and
+[`riposte_capped_cauchy()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_capped_cauchy.md)
+apply it, so a reader can reproduce the paper’s numbers:
+
+``` r
+
+riposte_test(Y ~ Z, data = wal, statistic = "cauchy", engine = "asymptotic",
+             cauchy_cap = 0.999)$p.value
+#> [1] 0.9932365
+```
+
+On these data the cap does not help the combination. The max distance’s
+term of $`-318`$ outweighs the terms of the three p-values near 0.03,
+which are each about 10, so the capped combined p-value is close to 1.
+
 ## What the truncation level changes
 
 The choice of $`t`$ is easiest to see in the rule for rejecting. With

@@ -28,6 +28,8 @@ The views of the outcome that get combined; an open, user-supplied set.
   : Mid-ranks of a block's outcomes
 - [`riposte_huber()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_huber.md)
   : Huber's psi of a block's outcomes, standardised by the block's MAD
+- [`riposte_cosine()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_cosine.md)
+  : Cosine of the within-block rank
 - [`riposte_tanh()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_tanh.md)
   : Bounded (tanh) transform of a block's outcomes, robustly
   standardised
@@ -112,3 +114,5 @@ The permutation engine and the closed-form moments behind the tests.
   : Pole-aware Cauchy (ACAT) transform of p-values
 - [`riposte_truncated_cauchy()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_truncated_cauchy.md)
   : Truncated Cauchy combination of p-values
+- [`riposte_capped_cauchy()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_capped_cauchy.md)
+  : Capped Cauchy combination of p-values (the paper's rule)

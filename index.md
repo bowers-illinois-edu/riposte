@@ -125,11 +125,11 @@ raw outcome alone gives p = 0.53 two-sided, while the blocked Cauchy
 combination of all six representations above gives p = 0.004.
 
 Both engines support both designs and both combinations shown above. The
-asymptotic engine uses no random draws and ignores `nresample` and
-`seed`. It requires `statistic = "quadratic"`, `"cauchy"`, or `"hybrid"`
-and no covariance adjustment. The min-p (the default), the screen, and
-the max need the permutation engine. riposte has no large-sample version
-of the min-p yet. `coin` is used for comparison tests, not required to
+asymptotic engine runs the min-p (the default), `"quadratic"`,
+`"cauchy"`, `"hybrid"`, or `"max"`, without covariance adjustment. Its
+min-p refers the smallest p-value to draws from the joint normal
+approximation, so it uses `nresample` and `seed`. The screen needs the
+permutation engine. `coin` is used for comparison tests, not required to
 run these approximations.
 [`riposte_components()`](https://bowers-illinois-edu.github.io/riposte/reference/riposte_components.md)
 continues to report permutation mid-p values, even when used alongside

@@ -137,15 +137,18 @@ degree of freedom. We then average the Cauchy transforms of those
 p-values and calculate the standard Cauchy upper tail. The two combined
 p-values need not equal their permutation counterparts.
 
-The asymptotic engine uses no random draws, so `seed` and `nresample`
-have no effect. Its printed result identifies the approximation. It
-supports the unadjusted quadratic, Cauchy, and hybrid tests. The min-p
-(the default), the max, the screen, and covariance adjustment need the
-permutation engine. The approximations do not give the permutation
-test’s finite-sample level guarantee. In particular, individual scores
-that dominate the variance can make the normal approximation behind the
-chi-square calculation inaccurate. Dependence among the individual
-p-values also means that the Cauchy reference is an approximation.
+The asymptotic engine’s printed result identifies the approximation. It
+supports the unadjusted min-p, quadratic, Cauchy, hybrid, and max tests.
+Only its min-p uses random draws: it refers the smallest p-value to
+`nresample` draws from the joint normal approximation of the
+standardized statistics, and `seed` makes those draws reproducible. The
+quadratic, Cauchy, hybrid, and max ignore `seed` and `nresample`. The
+screen and covariance adjustment need the permutation engine. The
+approximations do not give the permutation test’s finite-sample level
+guarantee. In particular, individual scores that dominate the variance
+can make the normal approximation behind the chi-square calculation
+inaccurate. Dependence among the individual p-values also means that the
+Cauchy reference is an approximation.
 
 ### The Hybrid Cauchy example
 
@@ -262,6 +265,51 @@ riposte_test(outcome ~ treated | block, data = dat,
              statistic = "cauchy", nresample = 999, seed = 1)$p.value
 #> [1] 0.001
 ```
+
+## Effects that change sign across blocks
+
+Every p-value inside the min-p over seven compares treated with control
+units within each block and then adds the comparisons over the blocks.
+When a program raises outcomes at some sites and lowers them at others,
+those comparisons have opposite signs, and their sum can be near zero.
+The block statistic squares each block’s standardized comparison before
+adding, so a gain in one block cannot cancel a loss in another. Naming a
+score in `riposte_minp_control(block = )` adds that score’s block
+statistic to the min-p as one more p-value. In this example the program
+raises outcomes at five of ten sites and lowers them at the other five:
+
+``` r
+
+set.seed(20261116)
+site <- factor(rep(1:10, each = 20))
+z_site <- integer(200)
+for (b in levels(site)) {
+  ix <- which(site == b)
+  z_site[ix][sample.int(20, 10)] <- 1L
+}
+direction <- ifelse(as.integer(site) <= 5, 1, -1)
+sites <- data.frame(outcome = rnorm(200) + 0.8 * direction * z_site,
+                    treated = z_site, site = site)
+
+by_site <- riposte_test(outcome ~ treated | site, data = sites,
+                        nresample = 999, seed = 1,
+                        minp = riposte_minp_control(block = "rank"))
+round(by_site$component_p, 3)
+#>            raw           rank      mean_dist mean_rank_dist       max_dist 
+#>          0.693          0.650          0.763          0.279          0.054 
+#>          huber      quadratic     block_rank 
+#>          0.535          0.042          0.001
+by_site$p.value
+#> [1] 0.004
+```
+
+The rank’s own p-value, `rank`, adds the sites’ comparisons and is
+large. The block statistic of the rank, `block_rank`, squares them first
+and is small. Bowers and Burton use the cosine of the within-block rank
+as the score of their block statistic, which
+`riposte_minp_control(block = list(cosine = riposte_cosine))` asks for.
+With one block, or with blocks of two units, the block statistic cannot
+add anything, and riposte leaves it out with a message.
 
 ## Rank scores that weight the top of each block
 

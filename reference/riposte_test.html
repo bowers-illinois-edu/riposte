@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9012</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,6 +59,7 @@
 <span>  engine <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"permute"</span>, <span class="st">"saddlepoint"</span>, <span class="st">"asymptotic"</span><span class="op">)</span>,</span>
 <span>  alternative <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"two.sided"</span>, <span class="st">"greater"</span>, <span class="st">"less"</span><span class="op">)</span>,</span>
 <span>  cauchy_truncation <span class="op">=</span> <span class="fl">0.9</span>,</span>
+<span>  cauchy_cap <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span>,</span>
 <span>  gamma <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  alpha <span class="op">=</span> <span class="fl">0.05</span></span>
@@ -112,7 +113,7 @@ p-value and the quadratic's p-value, all with equal weight. With a
 one-sided <code>alternative</code>, only <code>"minp"</code> (the default then, without the
 quadratic combination), <code>"max"</code>, and <code>"cauchy"</code> are available. Under
 <code>engine = "saddlepoint"</code> the default is <code>"screen"</code>, because that engine has
-no min-p; under <code>engine = "asymptotic"</code> a statistic must be named.</p></dd>
+no min-p.</p></dd>
 
 
 <dt id="arg-representations">representations<a class="anchor" aria-label="anchor" href="#arg-representations"></a></dt>
@@ -123,7 +124,13 @@ set.</p></dd>
 
 <dt id="arg-nresample">nresample<a class="anchor" aria-label="anchor" href="#arg-nresample"></a></dt>
 <dd><p>number of re-randomizations for the Monte-Carlo combinations.
-Ignored for <code>engine = "asymptotic"</code>.</p></dd>
+With <code>engine = "asymptotic"</code> it is the number of draws from the joint
+normal approximation for the min-p, and other statistics ignore it.
+riposte draws re-randomizations a batch at a
+time and keeps only each one's statistics, so memory does not grow with
+<code>nresample</code>. A batch holds at most <code>getOption("riposte.batch_entries")</code>
+entries of the units-by-assignments matrix (1e7 by default, about 80 MB);
+the batch size changes memory use and nothing else.</p></dd>
 
 
 <dt id="arg-screen">screen<a class="anchor" aria-label="anchor" href="#arg-screen"></a></dt>
@@ -165,7 +172,7 @@ cluster when <code>clusters</code> is given; the cluster mean by default.</p></d
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
 <dd><p>optional integer seed (L'Ecuyer-CMRG) for reproducibility.
-Ignored for <code>engine = "asymptotic"</code>, which uses no random draws.</p></dd>
+With <code>engine = "asymptotic"</code> only the min-p uses random draws.</p></dd>
 
 
 <dt id="arg-engine">engine<a class="anchor" aria-label="anchor" href="#arg-engine"></a></dt>
@@ -179,9 +186,17 @@ combines them with the truncated Cauchy combination of Gui, Jiang, and Wang
 (2025); see <code>cauchy_truncation</code>. For <code>statistic = "hybrid"</code>, it adds the
 chi-square p-value of the quadratic to those p-values before combining.
 These are approximations, available without <code>adjust</code>, and do not require
-<code>coin</code> or <code>fastperm</code>. Set <code>statistic</code> explicitly to <code>"quadratic"</code>,
-<code>"cauchy"</code>, or <code>"hybrid"</code>; the max and screen approximations are not
-implemented.
+<code>coin</code> or <code>fastperm</code>. For <code>statistic = "max"</code>, it refers the largest
+standardized statistic (the largest absolute one for a two-sided test) to
+the joint normal distribution of the standardized statistics, with their
+null correlation matrix, as Rosenbaum (2012a) does; this needs the
+<code>mvtnorm</code> package. For <code>statistic = "minp"</code>, the default, it computes
+every p-value of the min-p from the normal and chi-square formulas and
+refers the smallest to <code>nresample</code> draws of the standardized statistics
+(and of the per-block sums of any block statistic) from their joint normal
+approximation, instead of to redrawn assignments; under the normal model
+each formula p-value is exactly uniform, so <code>minp</code>'s <code>pvalue</code> setting does
+not apply. The screen has no large-sample version.
 <code>"saddlepoint"</code> computes the combination with no
 re-randomization, via <code>fastperm</code>: the unadjusted Cauchy (each representation's
 marginal saddlepoint p-value combined by the Liu-Xie analytic tail), the
@@ -215,9 +230,21 @@ the large-sample Cauchy combination and hybrid, in (0, 1]; 0.9 by default.
 Each p-value \(p\) is converted to \(\tan((0.5 - t p)\pi)\) as in Gui,
 Jiang, and Wang (2025), so a p-value of 1 converts to \(\tan(-0.4\pi) =
 -3.08\) rather than minus infinity; see <code><a href="riposte_truncated_cauchy.html">riposte_truncated_cauchy()</a></code>. <code>1</code>
-gives Liu and Xie's untruncated combination. Used only with
+gives Liu and Xie's untruncated combination. Ignored when <code>cauchy_cap</code> is
+given. Used only with
 <code>engine = "asymptotic"</code>: the re-randomization Cauchy and hybrid combine mid-p
 values, which are never exactly 1.</p></dd>
+
+
+<dt id="arg-cauchy-cap">cauchy_cap<a class="anchor" aria-label="anchor" href="#arg-cauchy-cap"></a></dt>
+<dd><p>optional cap for the large-sample Cauchy combination and
+hybrid, in (0.5, 1]: every p-value above it enters as the cap, and the
+p-values are then combined by Liu and Xie's untruncated combination. This
+is the rule of Bowers and Burton's code, with <code>cauchy_cap = 0.999</code>, so it
+reproduces the paper's Cauchy and hybrid p-values; see
+<code><a href="riposte_capped_cauchy.html">riposte_capped_cauchy()</a></code>. <code>NULL</code> (default) uses <code>cauchy_truncation</code>
+instead. Giving both <code>cauchy_cap</code> and a <code>cauchy_truncation</code> other than 1
+is an error. Used only with <code>engine = "asymptotic"</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -256,8 +283,9 @@ observed assignment included. That observed-inclusion convention makes the
 test's level exactly valid in finite samples for any <code>nresample</code> (the p-value
 estimates, rather than equals, the full-enumeration value, so it varies with
 the seed). The closed-form moments and the screen's condition number are
-exact, not Monte-Carlo. With <code>engine = "asymptotic"</code>, <code>nresample</code> is zero
-and the p-value uses the stated approximation, not a permutation count.
+exact, not Monte-Carlo. With <code>engine = "asymptotic"</code>, the p-value uses
+the stated approximation, not a permutation count, and <code>nresample</code> is zero
+except for the min-p.
 Cauchy results from this engine also include <code>component_p</code>, the individual
 chi-square p-values, and hybrid results add the quadratic's. With
 <code>engine = "permute"</code>, hybrid results include <code>component_p</code>, the seven

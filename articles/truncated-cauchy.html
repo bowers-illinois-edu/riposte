@@ -19,7 +19,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">riposte</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9012</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -258,6 +258,25 @@ near 0.03 still count. Fang, Chang, Park, and Tseng (2023) proposed an
 earlier truncation of the same kind, replacing every p-value above 0.99
 with 0.99, and noted that p-values near 1 are common with discrete
 data.</p>
+<p>Bowers and Burton’s code uses a rule of that kind with a cap of
+0.999: every p-value above 0.999 enters as 0.999, and Liu and Xie’s
+combination follows. The cap converts a p-value of 1 to
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">tan</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mn>0.499</mn><mi>π</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>−</mi><mn>318</mn></mrow><annotation encoding="application/x-tex">\tan(-0.499\pi) = -318</annotation></semantics></math>
+rather than
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mn>3.08</mn></mrow><annotation encoding="application/x-tex">-3.08</annotation></semantics></math>,
+so a p-value near 1 still counts against the others more than it does
+under the truncation. <code>riposte_test(cauchy_cap = 0.999)</code> and
+<code><a href="../reference/riposte_capped_cauchy.html">riposte_capped_cauchy()</a></code> apply it, so a reader can reproduce
+the paper’s numbers:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/riposte_test.html">riposte_test</a></span><span class="op">(</span><span class="va">Y</span> <span class="op">~</span> <span class="va">Z</span>, data <span class="op">=</span> <span class="va">wal</span>, statistic <span class="op">=</span> <span class="st">"cauchy"</span>, engine <span class="op">=</span> <span class="st">"asymptotic"</span>,</span>
+<span>             cauchy_cap <span class="op">=</span> <span class="fl">0.999</span><span class="op">)</span><span class="op">$</span><span class="va">p.value</span></span>
+<span><span class="co">#&gt; [1] 0.9932365</span></span></code></pre></div>
+<p>On these data the cap does not help the combination. The max
+distance’s term of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mn>318</mn></mrow><annotation encoding="application/x-tex">-318</annotation></semantics></math>
+outweighs the terms of the three p-values near 0.03, which are each
+about 10, so the capped combined p-value is close to 1.</p>
 </div>
 <div class="section level2">
 <h2 id="what-the-truncation-level-changes">What the truncation level changes<a class="anchor" aria-label="anchor" href="#what-the-truncation-level-changes"></a>
@@ -296,7 +315,7 @@ that threshold is close to
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>6</mn><mi>/</mi><mn>0.05</mn><mo>=</mo><mn>120</mn></mrow><annotation encoding="application/x-tex">6/0.05 = 120</annotation></semantics></math>
 for any
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">contribution</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">p</span>, <span class="va">t</span><span class="op">)</span> <span class="va">pi</span> <span class="op">*</span> <span class="va">t</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">tan</a></span><span class="op">(</span><span class="va">pi</span> <span class="op">*</span> <span class="va">t</span> <span class="op">*</span> <span class="va">p</span><span class="op">)</span></span>
 <span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fl">0.05</span>, <span class="fl">0.5</span>, <span class="fl">0.8</span>, <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">p</span>, `t = 0.9` <span class="op">=</span> <span class="fu">contribution</span><span class="op">(</span><span class="va">p</span>, <span class="fl">0.9</span><span class="op">)</span>, `t = 0.8` <span class="op">=</span> <span class="fu">contribution</span><span class="op">(</span><span class="va">p</span>, <span class="fl">0.8</span><span class="op">)</span>,</span>
