@@ -37,6 +37,10 @@ reference:
   - riposte_adaptive_critical
   - riposte_adaptive_pvalue
   - riposte_adaptive_smallest_level
+- title: Min-p settings
+  desc: How the min-p, the default combination, computes the p-values it combines.
+  contents:
+  - riposte_minp_control
 - title: Combination screen
   desc: Choosing or blending the quadratic and the Cauchy from the conditioning of the covariance.
   contents:

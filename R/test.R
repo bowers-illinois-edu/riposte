@@ -1,10 +1,11 @@
 ## test.R --- the main user entry point.
 ##
 ## THE POINT. riposte_test() runs one combined test of the sharp null of no
-## effect. The default p-value uses re-randomization. statistic = "screen" (the
-## default) uses the closed-form Sigma to choose/blend the quadratic and the
-## Cauchy; "quadratic", "cauchy", "max", "minp", and "hybrid" force a single
-## combination. adjust /
+## effect. The default p-value uses re-randomization. statistic = "minp" (the
+## default since 0.0.0.9012, as the paper recommends) takes the smallest of the
+## representations' p-values and the quadratic's; "screen" uses the closed-form
+## Sigma to choose/blend the quadratic and the Cauchy; "quadratic", "cauchy",
+## "max", and "hybrid" force a single combination. adjust /
 ## learner add controls-only covariance adjustment. Works for complete,
 ## block- and cluster-randomized designs (cluster: permutation over cluster
 ## assignments, effective n = number of clusters, CV folds at the cluster level).
@@ -23,22 +24,25 @@
 #'   aggregated by `cluster_agg`), treatment is permuted over clusters within
 #'   blocks, and the effective sample size is the number of clusters. Treatment
 #'   must be constant within a cluster and clusters must nest within blocks.
-#' @param statistic which combination to use, spelled in full: `"screen"`
-#'   (default), `"quadratic"`, `"cauchy"`, `"max"`, `"minp"`, `"hybrid"`, or
-#'   `"adaptive"`. `"minp"` is single-step min-p:
-#'   at every re-randomization it takes each representation's mid-p value and
-#'   keeps the smallest, and its p-value is the share of re-randomizations whose
-#'   smallest value is at most the observed one. It gives the same p-value as
-#'   `"max"` when every representation's statistic has the same null
-#'   distribution, and differs when one takes few values. Each representation's
-#'   most extreme re-randomization ties for the smallest mid-p value, so the
-#'   min-p p-value cannot fall below about the number of representations
-#'   divided by `nresample + 1`: 0.003 for the default six with 1999
-#'   re-randomizations, but 0.12 with 49. The hybrid is the Cauchy
-#'   combination of each representation's own p-value and the quadratic's p-value,
-#'   all with equal weight (seven p-values for the default six representations).
-#'   With a one-sided `alternative`, only `"max"` (the default then), `"minp"`, and
-#'   `"cauchy"` are available.
+#' @param statistic which combination to use, spelled in full: `"minp"`
+#'   (default), `"screen"`, `"quadratic"`, `"cauchy"`, `"max"`, `"hybrid"`, or
+#'   `"adaptive"`. `"minp"` is single-step min-p, the test the paper recommends.
+#'   At the observed assignment and at every re-randomization it computes each
+#'   representation's p-value and, for a two-sided test, the quadratic
+#'   combination's (seven p-values for the default six representations), and
+#'   keeps the smallest. Its p-value is the share of assignments whose smallest
+#'   p-value is at most the observed one. `minp` sets how the p-values are
+#'   computed and whether the quadratic combination is one of them; see
+#'   [riposte_minp_control()]. With the default mid-p values, each p-value's
+#'   most extreme re-randomization ties for the smallest value, so the min-p
+#'   p-value cannot fall below about the number of p-values divided by
+#'   `nresample + 1`: 0.0035 for seven with 1999 re-randomizations, but 0.14
+#'   with 49. The hybrid is the Cauchy combination of each representation's own
+#'   p-value and the quadratic's p-value, all with equal weight. With a
+#'   one-sided `alternative`, only `"minp"` (the default then, without the
+#'   quadratic combination), `"max"`, and `"cauchy"` are available. Under
+#'   `engine = "saddlepoint"` the default is `"screen"`, because that engine has
+#'   no min-p; under `engine = "asymptotic"` a statistic must be named.
 #' @param alternative `"two.sided"` (default) counts evidence in either
 #'   direction. `"greater"` counts only treated-score sums above their
 #'   re-randomization mean, and `"less"` only sums below it. For scores that rise
@@ -59,6 +63,9 @@
 #'   Ignored for `engine = "asymptotic"`.
 #' @param screen a [riposte_screen_control()] list, used when
 #'   `statistic = "screen"`.
+#' @param minp a [riposte_minp_control()] list, used when `statistic = "minp"`:
+#'   how each p-value inside the min-p is computed (`pvalue`) and whether the
+#'   quadratic combination is one of them (`quadratic`).
 #' @param adjust optional covariance adjustment: either a one-sided covariate
 #'   formula (e.g. `~ x1 + x2`) or a [riposte_adjust()] specification. When a bare
 #'   formula, it is wrapped with `learner` (ridge by default). `NULL` means no
@@ -135,8 +142,9 @@
 #'   Cauchy results from this engine also include `component_p`, the individual
 #'   chi-square p-values, and hybrid results add the quadratic's. With
 #'   `engine = "permute"`, hybrid results include `component_p`, the seven
-#'   observed mid-p values, and min-p results include the representations'
-#'   observed mid-p values.
+#'   observed mid-p values, and min-p results include `component_p`, the observed
+#'   p-values it combined, and `minp`, the rule and whether the quadratic
+#'   combination was included.
 #'
 #' @details
 #' The chi-square approximation requires a normal limit for the standardized
@@ -184,8 +192,14 @@
 #'                 treated = rep(rep(0:1, each = 5), times = 4))
 #' d$outcome <- rnorm(40) + 0.8 * d$treated
 #'
-#' # the six default representations, combined by the screen
+#' # the default: the min-p over the six default representations' p-values and
+#' # the quadratic combination's
 #' riposte_test(outcome ~ treated | block, data = d, nresample = 499, seed = 1)
+#'
+#' # the same min-p with randomization p-values inside, for which the min-p's
+#' # p-value is at most 7 times the smallest of the seven
+#' riposte_test(outcome ~ treated | block, data = d, nresample = 499, seed = 1,
+#'              minp = riposte_minp_control(pvalue = "randomization"))
 #'
 #' # one representation, the raw outcome: every statistic then gives the same
 #' # permutation test, with the p-value of the difference in means within blocks
@@ -198,8 +212,8 @@
 #'              statistic = "max", alternative = "greater", nresample = 499,
 #'              seed = 1)
 #'
-#' # single-step min-p across the six default representations
-#' riposte_test(outcome ~ treated | block, data = d, statistic = "minp",
+#' # the screen, which chooses between the quadratic and the Cauchy combination
+#' riposte_test(outcome ~ treated | block, data = d, statistic = "screen",
 #'              nresample = 499, seed = 1)
 #'
 #' # matched pairs: Rosenbaum's (2012) tests. A pair is a block of two units with
@@ -231,11 +245,12 @@
 #'   Statistics*, 6(1), 83-105. \doi{10.1214/11-AOAS508}
 #' @export
 riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
-                        statistic = c("screen", "quadratic", "cauchy", "max", "minp",
+                        statistic = c("minp", "screen", "quadratic", "cauchy", "max",
                                       "hybrid", "adaptive"),
                         representations = riposte_reps_default(),
                         nresample = 1999L,
                         screen = riposte_screen_control(),
+                        minp = riposte_minp_control(),
                         adjust = NULL, learner = NULL, adjust_refit = TRUE,
                         cluster_agg = mean, seed = NULL,
                         engine = c("permute", "saddlepoint", "asymptotic"),
@@ -273,27 +288,38 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
   }
   riposte_check_truncation(cauchy_truncation)
 
-  ## the quadratic squares every departure from the null mean, and the screen
-  ## chooses between it and the Cauchy, so neither has a one-sided form; the max
-  ## is the one-sided default because it uses the joint re-randomization
-  ## distribution of the sums, which handles strongly correlated scores
+  if (!inherits(minp, "riposte_minp_control"))
+    stop("`minp` must come from riposte_minp_control().", call. = FALSE)
+
+  ## No statistic named: the min-p, which the paper recommends, except under the
+  ## saddlepoint engine, which has no min-p and keeps the screen.
+  if (!statistic_given && engine == "saddlepoint") statistic <- "screen"
+
+  ## The quadratic squares every departure from the null mean, and the screen and
+  ## the hybrid use it, so none of the three has a one-sided form. A one-sided
+  ## min-p leaves the quadratic out. Away from the permutation engine only the
+  ## Cauchy has a one-sided version.
   if (alternative != "two.sided") {
-    if (!statistic_given) statistic <- "max"
-    if (engine != "permute" && statistic %in% c("max", "minp"))
+    if (engine != "permute" && statistic != "cauchy")
       stop("with engine = \"", engine, "\", a one-sided test needs statistic = ",
-           "\"cauchy\"; the max (the one-sided default) and minp need ",
-           "engine = \"permute\".", call. = FALSE)
+           "\"cauchy\". The min-p and the max need engine = \"permute\", and the ",
+           "quadratic, the screen, and the hybrid have no one-sided form.", call. = FALSE)
     if (statistic %in% c("quadratic", "screen", "hybrid"))
-      stop("a one-sided alternative needs statistic = \"max\", \"minp\", or ",
+      stop("a one-sided alternative needs statistic = \"minp\", \"max\", or ",
            "\"cauchy\"; the quadratic, the screen, and the hybrid have no ",
            "one-sided form.", call. = FALSE)
   }
+  ## the min-p includes the quadratic combination for a two-sided test unless the
+  ## user says otherwise, and cannot include it for a one-sided test
+  minp_quadratic <- minp$quadratic %||% (alternative == "two.sided")
+  if (statistic == "minp" && minp_quadratic && alternative != "two.sided")
+    riposte_minp_one_sided_error(alternative)
   if (engine == "asymptotic") {
     if (!statistic %in% c("quadratic", "cauchy", "hybrid"))
-      stop("engine = \"asymptotic\" requires statistic = \"quadratic\", ",
-           "\"cauchy\", or \"hybrid\". Use engine = \"permute\" for the max, minp, ",
-           "or screen. Under the normal approximation minp is the max, so it has no ",
-           "separate large-sample version.", call. = FALSE)
+      stop("engine = \"asymptotic\" needs statistic = \"quadratic\", \"cauchy\", ",
+           "or \"hybrid\". riposte has no large-sample version of the min-p yet, and ",
+           "the max and the screen also need engine = \"permute\", which runs the ",
+           "min-p by default.", call. = FALSE)
     if (!is.null(adjust))
       stop("engine = \"asymptotic\" does not support covariance adjustment; ",
            "use engine = \"permute\".", call. = FALSE)
@@ -348,13 +374,15 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
 
   out <- if (is.null(adjust))
     riposte_test_unadjusted(des, representations, draws, statistic, screen, engine,
-                            alternative, cauchy_truncation)
+                            alternative, cauchy_truncation, minp$pvalue, minp_quadratic)
   else
     riposte_test_adjusted(des, X, representations, draws, statistic, screen, spec,
-                          alternative)
+                          alternative, minp$pvalue, minp_quadratic)
 
   structure(c(out, list(
     requested = statistic,
+    minp = if (identical(out$combination, "minp"))
+      list(pvalue = minp$pvalue, quadratic = minp_quadratic),
     alternative = alternative,
     engine = engine,
     n = length(des$y),
@@ -371,7 +399,8 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
 ## unadjusted path: closed-form moments + the shared draws
 riposte_test_unadjusted <- function(des, representations, draws, statistic, screen,
                                     engine = "permute", alternative = "two.sided",
-                                    truncation = 0.9) {
+                                    truncation = 0.9, minp_pvalue = "midp",
+                                    minp_quadratic = FALSE) {
   sm <- riposte_score_matrix(des$y, des$block, representations)
   if (ncol(sm$scores) == 0L)
     stop("every representation is constant within blocks; nothing to test.",
@@ -428,14 +457,16 @@ riposte_test_unadjusted <- function(des, representations, draws, statistic, scre
                             alternative = alternative),
     max    = riposte_max(sm$scores, des$z, des$block, moments = moments, draws = draws,
                          alternative = alternative),
-    minp   = riposte_minp(sm$scores, des$z, des$block, draws = draws,
-                          alternative = alternative),
+    minp   = riposte_minp(sm$scores, des$z, des$block, moments = moments, draws = draws,
+                          alternative = alternative, pvalue = minp_pvalue,
+                          quadratic = minp_quadratic),
     hybrid = riposte_hybrid(sm$scores, des$z, des$block, moments = moments, draws = draws)
   )
   out <- list(statistic = res$statistic, p.value = res$p.value, combination = chosen,
               condition = scr$condition, screen = if (statistic == "screen") scr else NULL,
               df = res$df, kept = sm$kept, dropped = sm$dropped)
-  ## the hybrid reports its seven observed mid-p values, min-p its six
+  ## the hybrid reports its seven observed mid-p values, the min-p the p-values
+  ## it combined
   if (!is.null(res$component_p)) out$component_p <- res$component_p
   out
 }
@@ -443,13 +474,17 @@ riposte_test_unadjusted <- function(des, representations, draws, statistic, scre
 ## adjusted path: refit-per-permutation residuals + Monte-Carlo moments. X is the
 ## (possibly cluster-collapsed) covariate matrix built by the caller.
 riposte_test_adjusted <- function(des, X, representations, draws, statistic,
-                                  screen, spec, alternative = "two.sided") {
+                                  screen, spec, alternative = "two.sided",
+                                  minp_pvalue = "midp", minp_quadratic = FALSE) {
   rp <- riposte_residual_perm_stats(des$y, X, des$block, draws, spec$learner,
                                     representations, spec$refit)
-  comb <- riposte_adjusted_combination(rp$stats, statistic, screen, alternative)
-  list(statistic = comb$result$statistic, p.value = comb$result$p.value,
-       combination = comb$chosen, condition = comb$condition,
-       screen = comb$screen, df = comb$result$df, kept = rp$kept,
-       dropped = setdiff(names(representations), rp$kept),
-       refit = spec$refit)
+  comb <- riposte_adjusted_combination(rp$stats, statistic, screen, alternative,
+                                       minp_pvalue, minp_quadratic)
+  out <- list(statistic = comb$result$statistic, p.value = comb$result$p.value,
+              combination = comb$chosen, condition = comb$condition,
+              screen = comb$screen, df = comb$result$df, kept = rp$kept,
+              dropped = setdiff(names(representations), rp$kept),
+              refit = spec$refit)
+  if (!is.null(comb$result$component_p)) out$component_p <- comb$result$component_p
+  out
 }

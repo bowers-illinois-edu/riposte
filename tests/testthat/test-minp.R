@@ -244,7 +244,9 @@ test_that("riposte_test(statistic = 'minp') runs and reports what the max report
   expect_equal(res$combination, "minp")
   expect_equal(res$requested, "minp")
   expect_true(res$p.value >= 0 && res$p.value <= 1)
-  expect_equal(length(res$component_p), 6L)
+  ## six representations and, by default for a two-sided test, the quadratic
+  ## combination (Jake's decision of 2026-11-16)
+  expect_equal(length(res$component_p), 7L)
   expect_true(all(res$component_p > 0 & res$component_p < 1))
   expect_equal(res$statistic, min(res$component_p))
   expect_output(print(res), "minp")
@@ -291,6 +293,6 @@ test_that("riposte_test() requires the full name of the statistic", {
                             seed = 5)$combination, "max")
   expect_equal(riposte_test(y ~ z | b, dat, statistic = "minp", nresample = 99,
                             seed = 5)$combination, "minp")
-  ## the default is unchanged
-  expect_equal(riposte_test(y ~ z | b, dat, nresample = 99, seed = 5)$requested, "screen")
+  ## the min-p is the default (Jake's decision of 2026-11-16)
+  expect_equal(riposte_test(y ~ z | b, dat, nresample = 99, seed = 5)$requested, "minp")
 })

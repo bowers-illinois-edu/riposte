@@ -137,8 +137,9 @@ test_that("adjusting for covariates of pure noise loses little power", {
     y <- ifelse(z == 1, rnorm(B * nb, sd = 1.35), rnorm(B * nb))
     d <- data.frame(Y = y, trt = z, blk = block,
                     x1 = rnorm(B * nb), x2 = rnorm(B * nb))
-    c(unadj = riposte_test(Y ~ trt | blk, d, nresample = 99)$p.value <= 0.05,
-      adj   = riposte_test(Y ~ trt | blk, d, adjust = ~ x1 + x2,
+    c(unadj = riposte_test(Y ~ trt | blk, d, statistic = "screen",
+                           nresample = 99)$p.value <= 0.05,
+      adj   = riposte_test(Y ~ trt | blk, d, statistic = "screen", adjust = ~ x1 + x2,
                            nresample = 99)$p.value <= 0.05)
   }))
   rr <- colMeans(rej)

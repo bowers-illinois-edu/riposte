@@ -40,7 +40,7 @@ test_that("a seed makes riposte_test reproducible", {
   expect_equal(a$p.value, b$p.value)
 })
 
-test_that("the screen default shrinks and reports lambda and the condition number", {
+test_that("the screen shrinks by default and reports lambda and the condition number", {
   d <- make_df()
   r <- riposte_test(Y ~ trt | blk, d, statistic = "screen", nresample = 199, seed = 3)
   expect_equal(r$requested, "screen")

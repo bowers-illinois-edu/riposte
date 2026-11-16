@@ -130,7 +130,8 @@ riposte_residual_perm_stats <- function(y, X, block, draws, learner,
 #' @keywords internal
 #' @noRd
 riposte_adjusted_combination <- function(Tmat, statistic, screen_control,
-                                         alternative = "two.sided") {
+                                         alternative = "two.sided",
+                                         minp_pvalue = "midp", minp_quadratic = FALSE) {
   ## POOLED moments (observed + draws). mu and Sigma are symmetric functions of
   ## the full set of statistics, so the combined statistic is permutation-
   ## equivariant and the test stays EXACT under refit-per-permutation (see the
@@ -154,7 +155,9 @@ riposte_adjusted_combination <- function(Tmat, statistic, screen_control,
     },
     cauchy = riposte_cauchy_from_T(Tmat, alternative),
     max    = riposte_max_from_T(Tmat, mu, sqrt(diag(Sigma)), alternative),
-    minp   = riposte_minp_from_T(Tmat, alternative),
+    ## the pooled mean, not zero, is the null mean of a refit residual sum
+    minp   = riposte_minp_from_T(Tmat, alternative, minp_pvalue, minp_quadratic,
+                                 mu = mu, Sigma = Sigma),
     hybrid = riposte_hybrid_from_T(Tmat, mu, Sigma)
   )
   list(result = res, chosen = chosen, screen = if (statistic == "screen") scr else NULL,

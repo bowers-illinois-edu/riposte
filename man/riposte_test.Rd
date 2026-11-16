@@ -9,10 +9,11 @@ riposte_test(
   data,
   blocks = NULL,
   clusters = NULL,
-  statistic = c("screen", "quadratic", "cauchy", "max", "minp", "hybrid", "adaptive"),
+  statistic = c("minp", "screen", "quadratic", "cauchy", "max", "hybrid", "adaptive"),
   representations = riposte_reps_default(),
   nresample = 1999L,
   screen = riposte_screen_control(),
+  minp = riposte_minp_control(),
   adjust = NULL,
   learner = NULL,
   adjust_refit = TRUE,
@@ -43,22 +44,25 @@ aggregated by \code{cluster_agg}), treatment is permuted over clusters within
 blocks, and the effective sample size is the number of clusters. Treatment
 must be constant within a cluster and clusters must nest within blocks.}
 
-\item{statistic}{which combination to use, spelled in full: \code{"screen"}
-(default), \code{"quadratic"}, \code{"cauchy"}, \code{"max"}, \code{"minp"}, \code{"hybrid"}, or
-\code{"adaptive"}. \code{"minp"} is single-step min-p:
-at every re-randomization it takes each representation's mid-p value and
-keeps the smallest, and its p-value is the share of re-randomizations whose
-smallest value is at most the observed one. It gives the same p-value as
-\code{"max"} when every representation's statistic has the same null
-distribution, and differs when one takes few values. Each representation's
-most extreme re-randomization ties for the smallest mid-p value, so the
-min-p p-value cannot fall below about the number of representations
-divided by \code{nresample + 1}: 0.003 for the default six with 1999
-re-randomizations, but 0.12 with 49. The hybrid is the Cauchy
-combination of each representation's own p-value and the quadratic's p-value,
-all with equal weight (seven p-values for the default six representations).
-With a one-sided \code{alternative}, only \code{"max"} (the default then), \code{"minp"}, and
-\code{"cauchy"} are available.}
+\item{statistic}{which combination to use, spelled in full: \code{"minp"}
+(default), \code{"screen"}, \code{"quadratic"}, \code{"cauchy"}, \code{"max"}, \code{"hybrid"}, or
+\code{"adaptive"}. \code{"minp"} is single-step min-p, the test the paper recommends.
+At the observed assignment and at every re-randomization it computes each
+representation's p-value and, for a two-sided test, the quadratic
+combination's (seven p-values for the default six representations), and
+keeps the smallest. Its p-value is the share of assignments whose smallest
+p-value is at most the observed one. \code{minp} sets how the p-values are
+computed and whether the quadratic combination is one of them; see
+\code{\link[=riposte_minp_control]{riposte_minp_control()}}. With the default mid-p values, each p-value's
+most extreme re-randomization ties for the smallest value, so the min-p
+p-value cannot fall below about the number of p-values divided by
+\code{nresample + 1}: 0.0035 for seven with 1999 re-randomizations, but 0.14
+with 49. The hybrid is the Cauchy combination of each representation's own
+p-value and the quadratic's p-value, all with equal weight. With a
+one-sided \code{alternative}, only \code{"minp"} (the default then, without the
+quadratic combination), \code{"max"}, and \code{"cauchy"} are available. Under
+\code{engine = "saddlepoint"} the default is \code{"screen"}, because that engine has
+no min-p; under \code{engine = "asymptotic"} a statistic must be named.}
 
 \item{representations}{a named list of representation functions;
 \code{\link[=riposte_reps_default]{riposte_reps_default()}} by default. Supply your own to combine a different
@@ -69,6 +73,10 @@ Ignored for \code{engine = "asymptotic"}.}
 
 \item{screen}{a \code{\link[=riposte_screen_control]{riposte_screen_control()}} list, used when
 \code{statistic = "screen"}.}
+
+\item{minp}{a \code{\link[=riposte_minp_control]{riposte_minp_control()}} list, used when \code{statistic = "minp"}:
+how each p-value inside the min-p is computed (\code{pvalue}) and whether the
+quadratic combination is one of them (\code{quadratic}).}
 
 \item{adjust}{optional covariance adjustment: either a one-sided covariate
 formula (e.g. \code{~ x1 + x2}) or a \code{\link[=riposte_adjust]{riposte_adjust()}} specification. When a bare
@@ -171,8 +179,9 @@ and the p-value uses the stated approximation, not a permutation count.
 Cauchy results from this engine also include \code{component_p}, the individual
 chi-square p-values, and hybrid results add the quadratic's. With
 \code{engine = "permute"}, hybrid results include \code{component_p}, the seven
-observed mid-p values, and min-p results include the representations'
-observed mid-p values.
+observed mid-p values, and min-p results include \code{component_p}, the observed
+p-values it combined, and \code{minp}, the rule and whether the quadratic
+combination was included.
 }
 \description{
 Combined randomization-based test of the sharp null
@@ -223,8 +232,14 @@ d <- data.frame(block = factor(rep(1:4, each = 10)),
                 treated = rep(rep(0:1, each = 5), times = 4))
 d$outcome <- rnorm(40) + 0.8 * d$treated
 
-# the six default representations, combined by the screen
+# the default: the min-p over the six default representations' p-values and
+# the quadratic combination's
 riposte_test(outcome ~ treated | block, data = d, nresample = 499, seed = 1)
+
+# the same min-p with randomization p-values inside, for which the min-p's
+# p-value is at most 7 times the smallest of the seven
+riposte_test(outcome ~ treated | block, data = d, nresample = 499, seed = 1,
+             minp = riposte_minp_control(pvalue = "randomization"))
 
 # one representation, the raw outcome: every statistic then gives the same
 # permutation test, with the p-value of the difference in means within blocks
@@ -237,8 +252,8 @@ riposte_test(outcome ~ treated | block, data = d, representations = raw,
              statistic = "max", alternative = "greater", nresample = 499,
              seed = 1)
 
-# single-step min-p across the six default representations
-riposte_test(outcome ~ treated | block, data = d, statistic = "minp",
+# the screen, which chooses between the quadratic and the Cauchy combination
+riposte_test(outcome ~ treated | block, data = d, statistic = "screen",
              nresample = 499, seed = 1)
 
 # matched pairs: Rosenbaum's (2012) tests. A pair is a block of two units with

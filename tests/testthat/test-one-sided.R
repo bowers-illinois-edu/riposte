@@ -181,19 +181,21 @@ test_that("if no treated unit is harmed, the 'less' p-value never falls below it
 
 ## ---- the riposte_test interface -----------------------------------------------
 
-test_that("a one-sided call with no statistic uses the max", {
+test_that("a one-sided call with no statistic uses the min-p without the quadratic combination", {
   d <- one_sided_design(1)
   dat <- data.frame(y = d$y, z = d$z, b = d$block)
   res <- riposte_test(y ~ z | b, dat, alternative = "less",
                       representations = riposte_poly_reps(c(2, 5), tail = "lower"),
                       nresample = 99, seed = 1)
-  expect_equal(res$combination, "max")
+  expect_equal(res$combination, "minp")
+  expect_false(res$minp$quadratic)
   expect_equal(res$alternative, "less")
   expect_output(print(res), "less")
-  ## the two-sided default is unchanged
+  ## the two-sided default is the min-p with the quadratic combination
   res2 <- riposte_test(y ~ z | b, dat, nresample = 99, seed = 1)
   expect_equal(res2$alternative, "two.sided")
-  expect_equal(res2$requested, "screen")
+  expect_equal(res2$requested, "minp")
+  expect_true(res2$minp$quadratic)
 })
 
 test_that("the quadratic and the screen refuse a one-sided alternative", {
@@ -223,9 +225,10 @@ test_that("the saddlepoint Cauchy uses one-sided saddlepoint marginals", {
   p_perm <- riposte_test(y ~ z | b, dat, representations = low, statistic = "cauchy",
                          alternative = "less", nresample = 4999, seed = 1)$p.value
   expect_lt(abs(res$p.value - p_perm), 0.08)
-  ## the one-sided default, the max, has no saddlepoint version
+  ## under the saddlepoint engine a one-sided test needs the Cauchy, and the
+  ## error for an unnamed statistic says so
   expect_error(riposte_test(y ~ z | b, dat, representations = low,
-                            engine = "saddlepoint", alternative = "less"), "max")
+                            engine = "saddlepoint", alternative = "less"), "cauchy")
 })
 
 test_that("the asymptotic Cauchy uses one-sided normal tails", {
@@ -254,9 +257,9 @@ test_that("the direction matters: harm gives a small 'less' p-value and a large 
   y <- d$y0; y[hurt] <- y[hurt] - 4
   dat <- data.frame(y = y, z = d$z, b = d$block)
   low <- riposte_poly_reps(c(5, 14), tail = "lower")
-  p_less <- riposte_test(y ~ z | b, dat, representations = low,
+  p_less <- riposte_test(y ~ z | b, dat, representations = low, statistic = "max",
                          alternative = "less", nresample = 499, seed = 1)$p.value
-  p_greater <- riposte_test(y ~ z | b, dat, representations = low,
+  p_greater <- riposte_test(y ~ z | b, dat, representations = low, statistic = "max",
                             alternative = "greater", nresample = 499, seed = 1)$p.value
   expect_lt(p_less, 0.05)
   expect_gt(p_greater, 0.5)
@@ -279,6 +282,7 @@ test_that("covariance adjustment accepts a one-sided alternative", {
   d <- one_sided_design(5)
   dat <- data.frame(y = d$y, z = d$z, b = d$block, x = rnorm(length(d$y)))
   res <- riposte_test(y ~ z | b, dat, adjust = ~ x, alternative = "less",
+                      statistic = "max",
                       representations = riposte_poly_reps(c(2, 5), tail = "lower"),
                       nresample = 49, seed = 1)
   expect_equal(res$combination, "max")
@@ -318,7 +322,7 @@ test_that("when some are helped and none harmed, the 'less' test rejects at most
     helped <- sample(which(d$z == 1), 6L)              # 6 of 30 treated helped by 3
     y <- d$y0; y[helped] <- y[helped] + 3
     dat <- data.frame(y = y, z = d$z, b = d$block)
-    rej[i] <- riposte_test(y ~ z | b, dat, representations = low,
+    rej[i] <- riposte_test(y ~ z | b, dat, representations = low, statistic = "max",
                            alternative = "less", nresample = 199)$p.value <= alpha
   }
   expect_lte(mean(rej), alpha + 2.5 * sqrt(alpha * (1 - alpha) / nsims))
@@ -337,7 +341,7 @@ test_that("against harm to a few, the one-sided bottom-weighted test beats the t
     y <- d$y0; y[hurt] <- y[hurt] - 3
     dat <- data.frame(y = y, z = d$z, b = d$block)
     rej[i, "bottom"] <- riposte_test(y ~ z | b, dat, representations = low,
-                                     alternative = "less",
+                                     statistic = "max", alternative = "less",
                                      nresample = 199)$p.value <= alpha
     rej[i, "means"] <- riposte_test(y ~ z | b, dat, representations = raw,
                                     statistic = "quadratic",
@@ -368,7 +372,7 @@ test_that("the one-sided max of bottom-weighted scores is CMRSS's test that no t
   zetas <- c(5, 14)
   rip <- riposte_test(y ~ z | b, data.frame(y = y, z = d$z, b = d$block),
                       representations = riposte_poly_reps(zetas, tail = "lower"),
-                      alternative = "less", nresample = 99, seed = 1)
+                      statistic = "max", alternative = "less", nresample = 99, seed = 1)
   methods <- lapply(zetas, function(r) lapply(seq_len(6), function(i)
     list(name = "Polynomial", r = r, std = TRUE, scale = FALSE)))
   cm <- suppressWarnings(CMRSS::pval_comb_block(d$z, -y, k = sum(d$z), c = 0,

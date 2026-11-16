@@ -49,6 +49,23 @@ riposte_midp <- function(v, alternative = c("two.sided", "greater", "less")) {
   (more + 0.5 * (at_least - more)) / n
 }
 
+## The ordinary randomization p-value of each entry of `v` among all the entries:
+## the share at least as extreme, ties counted in full, the entry itself
+## included. The min-p's "randomization" rule uses it, because the guarantee
+## that the min-p's p-value is at most K times the smallest of its K p-values
+## needs each share of entries at or below m to be at most m, which this
+## p-value gives and the mid-p value does not. Same tie tolerance as
+## riposte_midp().
+riposte_randp <- function(v, alternative = c("two.sided", "greater", "less")) {
+  alternative <- match.arg(alternative)
+  a <- switch(alternative, two.sided = abs(v), greater = v, less = -v)
+  n <- length(a)
+  tol <- riposte_tie_tol(a)
+  sorted <- sort(a)
+  at_least <- n - findInterval(a - tol, sorted, left.open = TRUE) # a_j >= a_i - tol
+  at_least / n
+}
+
 ## Tolerance within which another statistic counts as tied with x. Rank scores
 ## make many re-randomizations tie exactly in exact arithmetic (an assignment and
 ## its within-block complement give treated sums T and -T, for instance), and

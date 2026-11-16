@@ -56,6 +56,15 @@ print.riposte_test <- function(x, ...) {
     cat(sprintf("  screen (%s); condition number %.1f\n", how, x$condition))
   }
   cat(sprintf("  combination: %s\n", combo))
+  if (identical(combo, "minp") && !is.null(x$minp)) {
+    ## the rule decides what the guarantee is (riposte_minp_control()), so say it
+    rule <- switch(x$minp$pvalue, midp = "mid-p values",
+                   randomization = "randomization p-values",
+                   asymptotic = "normal and chi-square tail p-values")
+    cat(sprintf("  min-p over %d p-values (%s; quadratic combination %s)\n",
+                length(x$component_p), rule,
+                if (isTRUE(x$minp$quadratic)) "included" else "left out"))
+  }
   if (!is.null(x$alternative) && x$alternative != "two.sided")
     cat(sprintf("  alternative: %s (treated-score sums %s their re-randomization mean)\n",
                 x$alternative,

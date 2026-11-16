@@ -34,21 +34,33 @@ remotes::install_github("bowers-illinois-edu/fastperm")
 Given an outcome Y and a block- (or cluster-) randomized design, riposte builds
 several within-block representations of Y --- raw values, ranks, mean pairwise
 distance, mean rank distance, max distance, and a bounded transform --- and
-combines the evidence each carries:
+tests the sharp null hypothesis that treatment changed no one's outcome.
+
+By default `riposte_test()` runs the **min-p**, the test that Bowers and Burton
+recommend. At the observed assignment and at every re-randomization it computes
+seven p-values --- one for each of the six representations alone and one for
+their quadratic combination --- and keeps the smallest. Its p-value is the share
+of assignments whose smallest p-value is at most the observed one. The smallest
+is chosen again at every re-randomization, so the test keeps its level however
+the seven are computed. `riposte_minp_control()` sets how they are computed:
+mid-p values (the default), ordinary randomization p-values, or the normal and
+chi-square tails the paper's code uses. With randomization p-values the min-p
+rejects at level alpha whenever one of the seven is at or below alpha / 7. A
+one-sided test leaves the quadratic combination out, because the quadratic
+combination responds to departures in both directions.
+
+The other combinations remain available through `statistic`:
 
 - a **quadratic** (energy/distance) omnibus that uses the full permutation
-  covariance of the representations;
+  covariance of the representations (`"quadratic"`);
 - a **Cauchy** combination that uses only each representation's marginal
-  calibration; and
-- a **max** combination, the largest standardized representation; and
-- a **min-p** combination (`statistic = "minp"`), the smallest of the
-  representations' mid-p values, which equals the max when every
-  representation's statistic has the same null distribution.
-
-A **screen** chooses between the quadratic and the Cauchy from the conditioning
-of the permutation covariance --- an ancillary quantity (a function of the
-outcomes under the sharp null and the design, not of the realized assignment), so
-choosing from it does not disturb the exact level.
+  calibration (`"cauchy"`);
+- a **max** combination, the largest standardized representation (`"max"`);
+- the **hybrid**, the Cauchy combination of the seven p-values above
+  (`"hybrid"`); and
+- a **screen** that chooses between the quadratic and the Cauchy from the
+  conditioning of the permutation covariance (`"screen"`), a quantity fixed by
+  the outcomes and the design, so choosing from it does not disturb the level.
 
 By default, p-values use direct re-randomization under the specified design.
 `engine = "asymptotic"` instead uses a chi-square reference for the quadratic
@@ -106,23 +118,23 @@ of all six representations above gives p = 0.004.
 
 Both engines support both designs and both combinations shown above. The
 asymptotic engine uses no random draws and ignores `nresample` and `seed`.
-It requires `statistic = "quadratic"` or `"cauchy"` and no covariance adjustment.
-The default screen, the max, and min-p remain available with the permutation
-engine. `coin` is used for comparison tests, not required to run these
+It requires `statistic = "quadratic"`, `"cauchy"`, or `"hybrid"` and no
+covariance adjustment. The min-p (the default), the screen, and the max need the
+permutation engine. riposte has no large-sample version of the min-p yet.
+`coin` is used for comparison tests, not required to run these
 approximations. `riposte_components()` continues to report permutation mid-p
 values, even when used alongside an asymptotic combined test.
 
 ## Status
 
-Version 0.0.0.9004 adds the asymptotic option and unblocked formulas.
-`devtools::check()` completed on 2026-09-29 with 0 errors, 0 warnings, and 0
-notes. All 560 test assertions passed, including the size and power simulations,
-with no skipped tests (R 4.6.1 on macOS).
+Version 0.0.0.9012 makes the min-p the default; `NEWS.md` lists the changes in
+each version.
 Implemented: the outcome representations (open and user-supplied), the closed-form
 Strasser-Weber moments (verified against `coin` and against full enumeration), the
-quadratic/Cauchy/max combinations, the screen, `riposte_test()` and
-`riposte_components()`, controls-only covariance adjustment (refit per
-permutation), cluster-randomized designs, and the combined Stephenson rank test.
+min-p, quadratic, Cauchy, max, and hybrid combinations, the screen,
+`riposte_test()` and `riposte_components()`, Rosenbaum's matched-pair tests,
+controls-only covariance adjustment (refit per permutation), cluster-randomized
+designs, and the combined Stephenson rank test.
 Size and power directions are confirmed by simulation, exactness by enumeration,
 and correctness by two rounds of adversarial multi-agent audit.
 
@@ -131,7 +143,7 @@ moments do not apply under per-draw residualization); `propertee` interoperation
 and the few-cluster Neyman SE are not yet implemented. See `NEWS.md`.
 
 ```r
-riposte_test(outcome ~ treated | block, data = d)                  # combined test (screen default)
+riposte_test(outcome ~ treated | block, data = d)                  # combined test (min-p default)
 riposte_test(outcome ~ treated | block, data = d, adjust = ~ x1)   # covariance-adjusted
 riposte_test(outcome ~ treated | block, data = d, clusters = "cl") # cluster-randomized
 riposte_components(outcome ~ treated | block, data = d)            # per-representation diagnostics
