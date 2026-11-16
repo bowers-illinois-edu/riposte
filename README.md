@@ -118,8 +118,8 @@ of all six representations above gives p = 0.004.
 
 Both engines support both designs and both combinations shown above. The
 asymptotic engine uses no random draws and ignores `nresample` and `seed`.
-It requires `statistic = "quadratic"`, `"cauchy"`, or `"hybrid"` and no
-covariance adjustment. The min-p (the default), the screen, and the max need the
+It requires `statistic = "quadratic"`, `"cauchy"`, `"hybrid"`, or `"max"` and
+no covariance adjustment. The min-p (the default) and the screen need the
 permutation engine. riposte has no large-sample version of the min-p yet.
 `coin` is used for comparison tests, not required to run these
 approximations. `riposte_components()` continues to report permutation mid-p

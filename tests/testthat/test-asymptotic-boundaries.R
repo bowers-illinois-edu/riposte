@@ -103,10 +103,10 @@ test_that("asymptotic mode ignores the unused resampling count and seed", {
 
 test_that("unsupported approximations give an explicit error", {
   d <- asymptotic_example()
-  ## A maximum needs a joint reference distribution. A shrunk quadratic
-  ## does not generally have the ordinary chi-square reference. Neither is
-  ## part of the requested unadjusted quadratic and Cauchy implementation.
-  for (st in c("max", "screen")) {
+  ## A shrunk quadratic does not generally have the ordinary chi-square
+  ## reference, and riposte has no large-sample min-p yet. The max has had a
+  ## multivariate normal reference since 0.0.0.9014 (test-max-asymptotic.R).
+  for (st in c("screen", "minp")) {
     expect_error(riposte_test(Y ~ trt | blk, d, statistic = st,
                               engine = "asymptotic"),
                  'asymptotic.*quadratic.*cauchy')

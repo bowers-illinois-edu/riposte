@@ -17,7 +17,7 @@ riposte_log_chisq1_lower <- function(x, tol = 1e-30) {
 }
 
 riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided",
-                                    truncation = 0.9) {
+                                    truncation = 0.9, cap = NULL) {
   moments <- riposte_sw_moments(sm$scores, des$z, des$block)
   riposte_assert_testable(moments$Sigma)
 
@@ -64,7 +64,13 @@ riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided
   ## The Cauchy combination of a set of p-values: Gui, Jiang, and Wang's
   ## truncated conversion when truncation < 1 (see truncated-cauchy.R), Liu and
   ## Xie's untruncated one when truncation = 1.
+  ## With `cap`, the paper's rule instead: every p-value above the cap enters as
+  ## the cap, then Liu and Xie's combination (riposte_capped_cauchy()).
   combine <- function(log_p, log_1mp) {
+    if (!is.null(cap)) {
+      capped <- riposte_cap_log_tails(log_p, log_1mp, cap)
+      return(riposte_cauchy_log_tails(capped$log_p, capped$log_1mp))
+    }
     if (truncation < 1) riposte_truncated_cauchy_log(log_p, truncation)
     else riposte_cauchy_log_tails(log_p, log_1mp)
   }
@@ -72,6 +78,17 @@ riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided
   if (statistic == "quadratic") {
     qd <- quadratic()
     result <- list(statistic = qd$statistic, p.value = exp(qd$log_p), df = qd$df)
+  } else if (statistic == "max") {
+    ## the largest standardized sum in the requested direction, referred to the
+    ## joint normal distribution of the standardized sums (Rosenbaum 2012)
+    standardized <- centered / sqrt(diag(moments$Sigma))
+    directed <- switch(alternative, two.sided = abs(standardized),
+                       greater = standardized, less = -standardized)
+    largest <- max(directed)
+    result <- list(statistic = largest,
+                   p.value = riposte_max_normal_p(largest, stats::cov2cor(moments$Sigma),
+                                                  alternative),
+                   df = NA_integer_, which = colnames(scores)[which.max(directed)])
   } else if (statistic == "cauchy") {
     cp <- components()
     result <- combine(cp$log_p, cp$log_1mp)
@@ -143,4 +160,30 @@ riposte_cauchy_log_tails <- function(log_p, log_1mp) {
     p <- stats::pcauchy(statistic, lower.tail = FALSE)
   }
   return(list(statistic = statistic, p.value = p))
+}
+
+## The chance that the largest standardized sum, in absolute value for a
+## two-sided test, reaches `largest` when the sums are jointly normal with null
+## correlation matrix R. A statistic that copies another (correlation 1, or -1
+## for a two-sided test) leaves the largest unchanged but makes R singular, so
+## the copies count once, as in riposte_pairs_bound(). The integral comes from
+## mvtnorm's Genz-Bretz algorithm with a fixed seed, so a call gives the same
+## number every time.
+riposte_max_normal_p <- function(largest, R, alternative = "two.sided") {
+  k <- ncol(R)
+  copy <- function(r) if (alternative == "two.sided") abs(abs(r) - 1) < 1e-10 else abs(r - 1) < 1e-10
+  dup <- vapply(seq_len(k), function(j) any(copy(R[j, seq_len(j - 1L)])), logical(1))
+  R <- R[!dup, !dup, drop = FALSE]
+  k <- ncol(R)
+  if (k == 1L)
+    return(if (alternative == "two.sided") 2 * stats::pnorm(-largest)
+           else stats::pnorm(-largest))
+  if (!requireNamespace("mvtnorm", quietly = TRUE))
+    stop("the large-sample max needs the mvtnorm package; install it or use ",
+         "engine = \"permute\".", call. = FALSE)
+  lower <- if (alternative == "two.sided") rep(-largest, k) else rep(-Inf, k)
+  inside <- mvtnorm::pmvnorm(lower = lower, upper = rep(largest, k), corr = R,
+                             algorithm = mvtnorm::GenzBretz(maxpts = 1e5, abseps = 1e-6),
+                             seed = 1)
+  max(0, min(1, 1 - inside[[1]]))
 }

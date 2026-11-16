@@ -36,8 +36,12 @@ print.riposte_test <- function(x, ...) {
                   x$n_units, x$n_clusters, x$nblocks))
     else
       cat(sprintf("  %d units in %d blocks\n", x$n, x$nblocks))
-    reference <- if (x$combination == "quadratic")
-      sprintf("chi-square, df = %d", x$df) else "standard Cauchy"
+    reference <- switch(x$combination,
+      quadratic = sprintf("chi-square, df = %d", x$df),
+      max = "multivariate normal",
+      if (!is.null(x$cauchy_cap))
+        sprintf("standard Cauchy, p-values above %g entered as %g", x$cauchy_cap, x$cauchy_cap)
+      else "standard Cauchy")
     cat(sprintf("  asymptotic engine (%s; no re-randomization)\n", reference))
   } else if (isTRUE(x$engine == "saddlepoint"))
     cat(sprintf("  %d units in %d blocks; saddlepoint engine (no re-randomization)\n",

@@ -1,3 +1,22 @@
+# riposte 0.0.0.9014
+
+* `riposte_test(cauchy_cap = 0.999)` applies the paper's rule to the
+  large-sample Cauchy combination and hybrid: every p-value above the cap enters
+  as the cap, and Liu and Xie's combination follows. A reader can then reproduce
+  the paper's Cauchy and hybrid p-values. The default is still the truncation of
+  Gui, Jiang, and Wang at 0.9. On the paper's example of seven p-values the cap
+  gives 0.0030 and the truncation 0.0021. `riposte_capped_cauchy()` computes the
+  capped combination of any p-values.
+* `riposte_test(statistic = "max", engine = "asymptotic")` refers the largest
+  standardized statistic to the joint normal distribution of the standardized
+  statistics, as Rosenbaum (2012) does and as the paper's footnote in Section
+  4.4 says the software does. It works in every design, two-sided or one-sided,
+  and needs the mvtnorm package. Before, only the matched-pair tests had it.
+* With covariance adjustment, the Cauchy combination and the hybrid now measure
+  each treated sum's departure from its average over the observed and redrawn
+  assignments, as the min-p, the max, and the quadratic combination do. Their
+  adjusted p-values change slightly. Without adjustment nothing changes.
+
 # riposte 0.0.0.9013
 
 * `riposte_minp_control(block = )` adds a block statistic to the min-p for each

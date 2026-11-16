@@ -123,7 +123,7 @@ tail. The two combined p-values need not equal their permutation counterparts.
 
 The asymptotic engine uses no random draws, so `seed` and `nresample` have no
 effect. Its printed result identifies the approximation. It supports the
-unadjusted quadratic, Cauchy, and hybrid tests. The min-p (the default), the max,
+unadjusted quadratic, Cauchy, hybrid, and max tests. The min-p (the default),
 the screen, and covariance adjustment need the permutation engine. The
 approximations do not give
 the permutation test's finite-sample level guarantee. In particular, individual

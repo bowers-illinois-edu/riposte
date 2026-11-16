@@ -92,9 +92,13 @@
 #'   (2025); see `cauchy_truncation`. For `statistic = "hybrid"`, it adds the
 #'   chi-square p-value of the quadratic to those p-values before combining.
 #'   These are approximations, available without `adjust`, and do not require
-#'   `coin` or `fastperm`. Set `statistic` explicitly to `"quadratic"`,
-#'   `"cauchy"`, or `"hybrid"`; the max and screen approximations are not
-#'   implemented.
+#'   `coin` or `fastperm`. For `statistic = "max"`, it refers the largest
+#'   standardized statistic (the largest absolute one for a two-sided test) to
+#'   the joint normal distribution of the standardized statistics, with their
+#'   null correlation matrix, as Rosenbaum (2012a) does; this needs the
+#'   `mvtnorm` package. Set `statistic` explicitly to `"quadratic"`,
+#'   `"cauchy"`, `"hybrid"`, or `"max"`; the min-p and screen approximations
+#'   are not implemented.
 #'   `"saddlepoint"` computes the combination with no
 #'   re-randomization, via `fastperm`: the unadjusted Cauchy (each representation's
 #'   marginal saddlepoint p-value combined by the Liu-Xie analytic tail), the
@@ -109,9 +113,18 @@
 #'   Each p-value \eqn{p} is converted to \eqn{\tan((0.5 - t p)\pi)} as in Gui,
 #'   Jiang, and Wang (2025), so a p-value of 1 converts to \eqn{\tan(-0.4\pi) =
 #'   -3.08} rather than minus infinity; see [riposte_truncated_cauchy()]. `1`
-#'   gives Liu and Xie's untruncated combination. Used only with
+#'   gives Liu and Xie's untruncated combination. Ignored when `cauchy_cap` is
+#'   given. Used only with
 #'   `engine = "asymptotic"`: the re-randomization Cauchy and hybrid combine mid-p
 #'   values, which are never exactly 1.
+#' @param cauchy_cap optional cap for the large-sample Cauchy combination and
+#'   hybrid, in (0.5, 1\]: every p-value above it enters as the cap, and the
+#'   p-values are then combined by Liu and Xie's untruncated combination. This
+#'   is the rule of Bowers and Burton's code, with `cauchy_cap = 0.999`, so it
+#'   reproduces the paper's Cauchy and hybrid p-values; see
+#'   [riposte_capped_cauchy()]. `NULL` (default) uses `cauchy_truncation`
+#'   instead. Giving both `cauchy_cap` and a `cauchy_truncation` other than 1
+#'   is an error. Used only with `engine = "asymptotic"`.
 #' @param gamma optional sensitivity parameter (`>=1`) for Rosenbaum's (2012)
 #'  matched-pair tests. Giving `gamma` switches to those tests: the design must
 #'  be matched pairs (blocks of two, one treated), the test is one-sided, and
@@ -255,7 +268,7 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
                         cluster_agg = mean, seed = NULL,
                         engine = c("permute", "saddlepoint", "asymptotic"),
                         alternative = c("two.sided", "greater", "less"),
-                        cauchy_truncation = 0.9, ...,
+                        cauchy_truncation = 0.9, cauchy_cap = NULL, ...,
                         gamma = NULL, alpha = 0.05) {
   statistic_given <- !missing(statistic)
   alternative_given <- !missing(alternative)
@@ -287,6 +300,16 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
                                     match.call()))
   }
   riposte_check_truncation(cauchy_truncation)
+  ## the paper's rule for a p-value near 1 (riposte_capped_cauchy()) replaces the
+  ## truncation; the two are different rules, so asking for both is an error
+  if (!is.null(cauchy_cap)) {
+    riposte_check_cap(cauchy_cap)
+    if (!missing(cauchy_truncation) && cauchy_truncation != 1)
+      stop("give cauchy_cap or cauchy_truncation, not both: cauchy_cap applies the ",
+           "paper's rule (p-values above the cap enter as the cap, then Liu and Xie's ",
+           "combination) in place of the truncation of Gui, Jiang, and Wang.",
+           call. = FALSE)
+  }
 
   if (!inherits(minp, "riposte_minp_control"))
     stop("`minp` must come from riposte_minp_control().", call. = FALSE)
@@ -300,10 +323,13 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
   ## min-p leaves the quadratic out. Away from the permutation engine only the
   ## Cauchy has a one-sided version.
   if (alternative != "two.sided") {
-    if (engine != "permute" && statistic != "cauchy")
+    one_sided_here <- if (engine == "asymptotic") c("cauchy", "max") else "cauchy"
+    if (engine != "permute" && !statistic %in% one_sided_here)
       stop("with engine = \"", engine, "\", a one-sided test needs statistic = ",
-           "\"cauchy\". The min-p and the max need engine = \"permute\", and the ",
-           "quadratic, the screen, and the hybrid have no one-sided form.", call. = FALSE)
+           paste0("\"", one_sided_here, "\"", collapse = " or "), ". The min-p",
+           if (engine == "saddlepoint") " and the max need" else " needs",
+           " engine = \"permute\", and the quadratic, the screen, and the hybrid have ",
+           "no one-sided form.", call. = FALSE)
     if (statistic %in% c("quadratic", "screen", "hybrid"))
       stop("a one-sided alternative needs statistic = \"minp\", \"max\", or ",
            "\"cauchy\"; the quadratic, the screen, and the hybrid have no ",
@@ -329,11 +355,11 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
            "or give a named list of score functions.", call. = FALSE)
   }
   if (engine == "asymptotic") {
-    if (!statistic %in% c("quadratic", "cauchy", "hybrid"))
+    if (!statistic %in% c("quadratic", "cauchy", "hybrid", "max"))
       stop("engine = \"asymptotic\" needs statistic = \"quadratic\", \"cauchy\", ",
-           "or \"hybrid\". riposte has no large-sample version of the min-p yet, and ",
-           "the max and the screen also need engine = \"permute\", which runs the ",
-           "min-p by default.", call. = FALSE)
+           "\"hybrid\", or \"max\". riposte has no large-sample version of the min-p ",
+           "yet, and the screen also needs engine = \"permute\", which runs the min-p ",
+           "by default.", call. = FALSE)
     if (!is.null(adjust))
       stop("engine = \"asymptotic\" does not support covariance adjustment; ",
            "use engine = \"permute\".", call. = FALSE)
@@ -389,13 +415,15 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
   out <- if (is.null(adjust))
     riposte_test_unadjusted(des, representations, draws, statistic, screen, engine,
                             alternative, cauchy_truncation, minp$pvalue, minp_quadratic,
-                            minp$block)
+                            minp$block, cauchy_cap)
   else
     riposte_test_adjusted(des, X, representations, draws, statistic, screen, spec,
                           alternative, minp$pvalue, minp_quadratic)
 
   structure(c(out, list(
     requested = statistic,
+    cauchy_cap = if (engine == "asymptotic" && statistic %in% c("cauchy", "hybrid"))
+      cauchy_cap,
     minp = if (identical(out$combination, "minp"))
       list(pvalue = minp$pvalue, quadratic = minp_quadratic,
            block = riposte_minp_block_names(out$component_p)),
@@ -416,14 +444,16 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
 riposte_test_unadjusted <- function(des, representations, draws, statistic, screen,
                                     engine = "permute", alternative = "two.sided",
                                     truncation = 0.9, minp_pvalue = "midp",
-                                    minp_quadratic = FALSE, minp_block = NULL) {
+                                    minp_quadratic = FALSE, minp_block = NULL,
+                                    cauchy_cap = NULL) {
   sm <- riposte_score_matrix(des$y, des$block, representations)
   if (ncol(sm$scores) == 0L)
     stop("every representation is constant within blocks; nothing to test.",
          call. = FALSE)
 
   if (engine == "asymptotic")
-    return(riposte_test_asymptotic(des, sm, statistic, alternative, truncation))
+    return(riposte_test_asymptotic(des, sm, statistic, alternative, truncation,
+                                   cauchy_cap))
 
   ## draws-free saddlepoint combinations. The Cauchy needs no joint covariance; the
   ## quadratic (and the screen's choice between it and the Cauchy) need the

@@ -53,7 +53,10 @@ riposte_quadratic_from_T <- function(Tmat, mu, Sigma) {
   list(statistic = unname(q[1]), p.value = riposte_perm_pvalue(q), df = inv$rank)
 }
 
-riposte_cauchy_from_T <- function(Tmat, alternative = "two.sided") {
+riposte_cauchy_from_T <- function(Tmat, alternative = "two.sided", mu = NULL) {
+  ## departures from the null mean: zero without adjustment, the pooled mean of
+  ## the refit residual sums with it (Jake's decision of 2026-11-16)
+  if (!is.null(mu)) Tmat <- sweep(Tmat, 2, mu)
   ## mid-p of each rep at each assignment, in the requested direction
   P <- apply(Tmat, 2, riposte_midp, alternative = alternative)
   Tc <- rowMeans(riposte_acat_term(P))
@@ -72,7 +75,7 @@ riposte_hybrid_from_T <- function(Tmat, mu, Sigma) {
   inv <- riposte_std_pinv(Sigma)
   cen <- sweep(sweep(Tmat, 2, mu), 2, inv$sd, "/")
   q <- rowSums((cen %*% inv$R_pinv) * cen)
-  P <- cbind(apply(Tmat, 2, riposte_midp, alternative = "two.sided"),
+  P <- cbind(apply(sweep(Tmat, 2, mu), 2, riposte_midp, alternative = "two.sided"),
              quadratic = riposte_midp(q, alternative = "greater"))
   h <- rowMeans(riposte_acat_term(P))
   list(statistic = unname(h[1]), p.value = riposte_perm_pvalue(h), df = inv$rank,

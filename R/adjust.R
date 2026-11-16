@@ -153,7 +153,7 @@ riposte_adjusted_combination <- function(Tmat, statistic, screen_control,
       Sig <- if (statistic == "screen" && scr$method == "shrink") scr$Sigma else Sigma
       riposte_quadratic_from_T(Tmat, mu, Sig)
     },
-    cauchy = riposte_cauchy_from_T(Tmat, alternative),
+    cauchy = riposte_cauchy_from_T(Tmat, alternative, mu = mu),
     max    = riposte_max_from_T(Tmat, mu, sqrt(diag(Sigma)), alternative),
     ## the pooled mean, not zero, is the null mean of a refit residual sum
     minp   = riposte_minp_from_T(Tmat, alternative, minp_pvalue, minp_quadratic,

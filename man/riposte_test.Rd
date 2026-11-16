@@ -22,6 +22,7 @@ riposte_test(
   engine = c("permute", "saddlepoint", "asymptotic"),
   alternative = c("two.sided", "greater", "less"),
   cauchy_truncation = 0.9,
+  cauchy_cap = NULL,
   ...,
   gamma = NULL,
   alpha = 0.05
@@ -109,9 +110,13 @@ combines them with the truncated Cauchy combination of Gui, Jiang, and Wang
 (2025); see \code{cauchy_truncation}. For \code{statistic = "hybrid"}, it adds the
 chi-square p-value of the quadratic to those p-values before combining.
 These are approximations, available without \code{adjust}, and do not require
-\code{coin} or \code{fastperm}. Set \code{statistic} explicitly to \code{"quadratic"},
-\code{"cauchy"}, or \code{"hybrid"}; the max and screen approximations are not
-implemented.
+\code{coin} or \code{fastperm}. For \code{statistic = "max"}, it refers the largest
+standardized statistic (the largest absolute one for a two-sided test) to
+the joint normal distribution of the standardized statistics, with their
+null correlation matrix, as Rosenbaum (2012a) does; this needs the
+\code{mvtnorm} package. Set \code{statistic} explicitly to \code{"quadratic"},
+\code{"cauchy"}, \code{"hybrid"}, or \code{"max"}; the min-p and screen approximations
+are not implemented.
 \code{"saddlepoint"} computes the combination with no
 re-randomization, via \code{fastperm}: the unadjusted Cauchy (each representation's
 marginal saddlepoint p-value combined by the Liu-Xie analytic tail), the
@@ -141,9 +146,19 @@ the large-sample Cauchy combination and hybrid, in (0, 1]; 0.9 by default.
 Each p-value \eqn{p} is converted to \eqn{\tan((0.5 - t p)\pi)} as in Gui,
 Jiang, and Wang (2025), so a p-value of 1 converts to \eqn{\tan(-0.4\pi) =
 -3.08} rather than minus infinity; see \code{\link[=riposte_truncated_cauchy]{riposte_truncated_cauchy()}}. \code{1}
-gives Liu and Xie's untruncated combination. Used only with
+gives Liu and Xie's untruncated combination. Ignored when \code{cauchy_cap} is
+given. Used only with
 \code{engine = "asymptotic"}: the re-randomization Cauchy and hybrid combine mid-p
 values, which are never exactly 1.}
+
+\item{cauchy_cap}{optional cap for the large-sample Cauchy combination and
+hybrid, in (0.5, 1]: every p-value above it enters as the cap, and the
+p-values are then combined by Liu and Xie's untruncated combination. This
+is the rule of Bowers and Burton's code, with \code{cauchy_cap = 0.999}, so it
+reproduces the paper's Cauchy and hybrid p-values; see
+\code{\link[=riposte_capped_cauchy]{riposte_capped_cauchy()}}. \code{NULL} (default) uses \code{cauchy_truncation}
+instead. Giving both \code{cauchy_cap} and a \code{cauchy_truncation} other than 1
+is an error. Used only with \code{engine = "asymptotic"}.}
 
 \item{...}{reserved.}
 

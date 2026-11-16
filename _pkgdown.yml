@@ -62,6 +62,7 @@ reference:
   - riposte_midp
   - riposte_acat_term
   - riposte_truncated_cauchy
+  - riposte_capped_cauchy
 
 articles:
 - title: Articles

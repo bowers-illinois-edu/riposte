@@ -100,3 +100,48 @@ riposte_check_truncation <- function(truncation) {
          call. = FALSE)
   invisible(truncation)
 }
+
+#' Capped Cauchy combination of p-values (the paper's rule)
+#'
+#' Replaces every p-value above `cap` by `cap` and then combines the p-values by
+#' Liu and Xie's Cauchy combination: the mean of \eqn{\tan((0.5 - p)\pi)},
+#' referred to the standard Cauchy distribution. This is the rule of Bowers and
+#' Burton's code (footnote in Section 4.5 of "A More Powerful Test for
+#' Randomized Experiments"), with `cap = 0.999`. Without a cap one p-value of 1
+#' converts to minus infinity and makes the combined p-value 1 whatever the
+#' others are. With the cap it converts to \eqn{\tan(-0.499\pi) = -318}.
+#' riposte's default for the large-sample Cauchy and hybrid is instead the
+#' truncation of Gui, Jiang, and Wang, which converts a p-value of 1 to -3.08
+#' ([riposte_truncated_cauchy()]); [riposte_test()] applies this cap when given
+#' `cauchy_cap`.
+#'
+#' @param p numeric vector of p-values in \[0, 1\].
+#' @param cap the largest p-value that enters the combination, in (0.5, 1\];
+#'   0.999 by default. `cap = 1` gives Liu and Xie's combination unchanged.
+#' @return the combined p-value.
+#' @examples
+#' # the seven p-values of the paper's example: uncapped the combination is 1
+#' p <- c(0.0003, 0.15, 0.57, 0.05, 0.81, 0.25, 1)
+#' riposte_capped_cauchy(p)            # 0.0030
+#' riposte_capped_cauchy(p, cap = 1)   # 1
+#' riposte_truncated_cauchy(p)         # riposte's default rule: 0.0021
+#' @export
+riposte_capped_cauchy <- function(p, cap = 0.999) {
+  riposte_check_cap(cap)
+  if (!is.numeric(p) || anyNA(p) || any(p < 0 | p > 1))
+    stop("p must be numeric p-values in [0, 1] with no NA.", call. = FALSE)
+  capped <- riposte_cap_log_tails(log(p), log1p(-p), cap)
+  riposte_cauchy_log_tails(capped$log_p, capped$log_1mp)$p.value
+}
+
+riposte_check_cap <- function(cap) {
+  if (!is.numeric(cap) || length(cap) != 1L || is.na(cap) || cap <= 0.5 || cap > 1)
+    stop("cauchy_cap (cap) must be a single number in (0.5, 1].", call. = FALSE)
+  invisible(cap)
+}
+
+## Cap both log tails, so the capped p and the capped 1 - p stay one p-value, as
+## the paper's cap_log_tails() does.
+riposte_cap_log_tails <- function(log_p, log_1mp, cap) {
+  list(log_p = pmin(log_p, log(cap)), log_1mp = pmax(log_1mp, log1p(-cap)))
+}
