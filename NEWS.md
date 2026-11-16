@@ -1,3 +1,23 @@
+# riposte 0.0.0.9013
+
+* `riposte_minp_control(block = )` adds a block statistic to the min-p for each
+  score it names, one more p-value each. The block statistic standardizes the
+  score's treated sum within each block, squares it, and adds the squares over
+  the blocks, so a treatment that raises outcomes in some blocks and lowers them
+  in others does not cancel, as it can in every statistic that adds the blocks'
+  comparisons first. `block` takes the names of representations (for example
+  `block = "rank"`) or a named list of score functions. Its p-value follows the
+  min-p's `pvalue` rule, and under `"asymptotic"` it is the chi-square tail on
+  the number of blocks in the sum, as in the paper's code. The default adds no
+  block statistic. riposte leaves it out, with a message, when the design has
+  one block or only blocks of two units, where it cannot add anything. It has
+  no one-sided form and is not yet available with covariance adjustment; both
+  requests stop with an error that says why.
+* `riposte_cosine()` is the paper's cosine score, the cosine of pi times the
+  within-block rank divided by the block size plus one.
+  `riposte_minp_control(block = list(cosine = riposte_cosine))` gives the
+  paper's min-p over eight p-values for a block-randomized experiment.
+
 # riposte 0.0.0.9012
 
 * The min-p is now `riposte_test()`'s default statistic, as the paper (Bowers and

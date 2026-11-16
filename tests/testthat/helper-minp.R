@@ -92,3 +92,54 @@ minp_interface_design <- function(seed, B = 4L, nb = 8L, effect = 0.8) {
   data.frame(y = rnorm(B * nb) + effect * z, z = z, b = block,
              x = rnorm(B * nb))
 }
+
+## ---- the block statistic ---------------------------------------------------
+
+## The block statistic at every assignment (one column of G per assignment),
+## written out from its definition: in each block, the treated sum of the
+## score's departures from the block mean, squared, divided by its variance
+## m_b (n_b - m_b) / (n_b - 1) x sum of squared departures / n_b, and added
+## over the blocks whose variance is positive. Returns the statistic and the
+## number of blocks in the sum, the chi-square's degrees of freedom.
+brute_block_stat <- function(score, block, G) {
+  stat <- numeric(ncol(G))
+  used <- 0L
+  for (b in levels(factor(block))) {
+    ix <- which(block == b)
+    dev <- score[ix] - mean(score[ix])
+    n_b <- length(ix)
+    m_b <- sum(G[ix, 1])
+    v_b <- m_b * (n_b - m_b) / (n_b - 1) * sum(dev^2) / n_b
+    if (v_b <= 0) next
+    used <- used + 1L
+    for (j in seq_len(ncol(G))) stat[j] <- stat[j] + sum(G[ix, j] * dev)^2 / v_b
+  }
+  list(stat = stat, df = used)
+}
+
+## the block statistic's p-value at every assignment under each rule; large
+## values are extreme
+brute_block_p <- function(bs, rule) {
+  switch(rule,
+    midp = riposte_midp(bs$stat, alternative = "greater"),
+    randomization = share_at_least(bs$stat),
+    asymptotic = stats::pchisq(bs$stat, df = bs$df, lower.tail = FALSE))
+}
+
+## within-block ranks, the score the block tests below use
+within_block_rank <- function(y, block) stats::ave(y, block, FUN = rank)
+
+## a block-randomized experiment in which treatment raises outcomes in half the
+## blocks and lowers them in the rest, so the within-block comparisons cancel
+## when added over blocks
+help_and_harm_design <- function(seed, B = 10L, nb = 20L, effect = 0.8) {
+  RNGkind("Mersenne-Twister", "Inversion", "Rejection")
+  set.seed(seed)
+  block <- factor(rep(seq_len(B), each = nb))
+  z <- integer(B * nb)
+  for (b in levels(block)) {
+    ix <- which(block == b); z[ix][sample.int(nb, nb %/% 2L)] <- 1L
+  }
+  direction <- ifelse(as.integer(block) <= B %/% 2L, 1, -1)
+  data.frame(y = rnorm(B * nb) + effect * direction * z, z = z, b = block)
+}

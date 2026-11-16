@@ -224,6 +224,44 @@ riposte_test(outcome ~ treated | block, data = dat,
              statistic = "cauchy", nresample = 999, seed = 1)$p.value
 ```
 
+## Effects that change sign across blocks
+
+Every p-value inside the min-p over seven compares treated with control units
+within each block and then adds the comparisons over the blocks. When a program
+raises outcomes at some sites and lowers them at others, those comparisons have
+opposite signs, and their sum can be near zero. The block statistic squares each
+block's standardized comparison before adding, so a gain in one block cannot
+cancel a loss in another. Naming a score in `riposte_minp_control(block = )`
+adds that score's block statistic to the min-p as one more p-value. In this
+example the program raises outcomes at five of ten sites and lowers them at the
+other five:
+
+```{r block}
+set.seed(20261116)
+site <- factor(rep(1:10, each = 20))
+z_site <- integer(200)
+for (b in levels(site)) {
+  ix <- which(site == b)
+  z_site[ix][sample.int(20, 10)] <- 1L
+}
+direction <- ifelse(as.integer(site) <= 5, 1, -1)
+sites <- data.frame(outcome = rnorm(200) + 0.8 * direction * z_site,
+                    treated = z_site, site = site)
+
+by_site <- riposte_test(outcome ~ treated | site, data = sites,
+                        nresample = 999, seed = 1,
+                        minp = riposte_minp_control(block = "rank"))
+round(by_site$component_p, 3)
+by_site$p.value
+```
+
+The rank's own p-value, `rank`, adds the sites' comparisons and is large. The
+block statistic of the rank, `block_rank`, squares them first and is small.
+Bowers and Burton use the cosine of the within-block rank as the score of their
+block statistic, which `riposte_minp_control(block = list(cosine =
+riposte_cosine))` asks for. With one block, or with blocks of two units, the
+block statistic cannot add anything, and riposte leaves it out with a message.
+
 ## Rank scores that weight the top of each block
 
 Some programs help a few people a great deal and leave the rest alone. A rank

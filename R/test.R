@@ -314,6 +314,20 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
   minp_quadratic <- minp$quadratic %||% (alternative == "two.sided")
   if (statistic == "minp" && minp_quadratic && alternative != "two.sided")
     riposte_minp_one_sided_error(alternative)
+  if (statistic == "minp" && !is.null(minp$block)) {
+    if (alternative != "two.sided") riposte_minp_block_one_sided_error(alternative)
+    if (!is.null(adjust))
+      stop("The block statistic is not yet available with covariance adjustment. ",
+           "Under adjustment the scores change at every re-randomization, so each ",
+           "block's variance would have to come from the re-randomizations as well. ",
+           "Leave out `block` in riposte_minp_control(), or drop `adjust`.", call. = FALSE)
+    if (is.character(minp$block) && !all(minp$block %in% names(representations)))
+      stop("`block` in riposte_minp_control() names ",
+           paste0("\"", setdiff(minp$block, names(representations)), "\"", collapse = ", "),
+           ", which is not among the representations (",
+           paste(names(representations), collapse = ", "), "). Name a representation, ",
+           "or give a named list of score functions.", call. = FALSE)
+  }
   if (engine == "asymptotic") {
     if (!statistic %in% c("quadratic", "cauchy", "hybrid"))
       stop("engine = \"asymptotic\" needs statistic = \"quadratic\", \"cauchy\", ",
@@ -374,7 +388,8 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
 
   out <- if (is.null(adjust))
     riposte_test_unadjusted(des, representations, draws, statistic, screen, engine,
-                            alternative, cauchy_truncation, minp$pvalue, minp_quadratic)
+                            alternative, cauchy_truncation, minp$pvalue, minp_quadratic,
+                            minp$block)
   else
     riposte_test_adjusted(des, X, representations, draws, statistic, screen, spec,
                           alternative, minp$pvalue, minp_quadratic)
@@ -382,7 +397,8 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
   structure(c(out, list(
     requested = statistic,
     minp = if (identical(out$combination, "minp"))
-      list(pvalue = minp$pvalue, quadratic = minp_quadratic),
+      list(pvalue = minp$pvalue, quadratic = minp_quadratic,
+           block = riposte_minp_block_names(out$component_p)),
     alternative = alternative,
     engine = engine,
     n = length(des$y),
@@ -400,7 +416,7 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
 riposte_test_unadjusted <- function(des, representations, draws, statistic, screen,
                                     engine = "permute", alternative = "two.sided",
                                     truncation = 0.9, minp_pvalue = "midp",
-                                    minp_quadratic = FALSE) {
+                                    minp_quadratic = FALSE, minp_block = NULL) {
   sm <- riposte_score_matrix(des$y, des$block, representations)
   if (ncol(sm$scores) == 0L)
     stop("every representation is constant within blocks; nothing to test.",
@@ -459,7 +475,10 @@ riposte_test_unadjusted <- function(des, representations, draws, statistic, scre
                          alternative = alternative),
     minp   = riposte_minp(sm$scores, des$z, des$block, moments = moments, draws = draws,
                           alternative = alternative, pvalue = minp_pvalue,
-                          quadratic = minp_quadratic),
+                          quadratic = minp_quadratic,
+                          block_scores = if (!is.null(minp_block))
+                            riposte_minp_block_scores(des$y, des$z, des$block,
+                                                      representations, minp_block)),
     hybrid = riposte_hybrid(sm$scores, des$z, des$block, moments = moments, draws = draws)
   )
   out <- list(statistic = res$statistic, p.value = res$p.value, combination = chosen,

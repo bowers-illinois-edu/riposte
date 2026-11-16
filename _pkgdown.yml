@@ -19,6 +19,7 @@ reference:
   - riposte_max_dist
   - riposte_rank
   - riposte_huber
+  - riposte_cosine
   - riposte_tanh
   - riposte_stephenson_scores
   - riposte_stephenson_reps

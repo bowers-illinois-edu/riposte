@@ -6,7 +6,8 @@
 \usage{
 riposte_minp_control(
   pvalue = c("midp", "randomization", "asymptotic"),
-  quadratic = NULL
+  quadratic = NULL,
+  block = NULL
 )
 }
 \arguments{
@@ -30,10 +31,23 @@ leaves it out for a one-sided test. The quadratic combination squares each
 representation's departure from its re-randomization mean, so it responds
 to departures in both directions; asking for it with a one-sided
 \code{alternative} is an error.}
+
+\item{block}{scores whose block statistic joins the min-p, one more p-value
+each. The block statistic standardizes a score's treated sum within each
+block, squares it, and adds the squares over the blocks, so a treatment that
+raises outcomes in some blocks and lowers them in others does not cancel.
+Give the names of representations in \code{representations} (for example
+\code{block = "rank"}) or a named list of score functions (for example
+\code{block = list(cosine = riposte_cosine)}, the paper's cosine statistic).
+\code{NULL} (default) adds none. Its p-value follows \code{pvalue}; under
+\code{"asymptotic"} it is the chi-square tail on the number of blocks in the
+sum. It has no one-sided form, is not yet available with covariance
+adjustment, and is left out, with a message, when the design has one block
+or only blocks of two units, where it cannot add anything.}
 }
 \value{
-a list of class \code{riposte_minp_control} with elements \code{pvalue} and
-\code{quadratic}, for the \code{minp} argument of \code{\link[=riposte_test]{riposte_test()}}.
+a list of class \code{riposte_minp_control} with elements \code{pvalue},
+\code{quadratic}, and \code{block}, for the \code{minp} argument of \code{\link[=riposte_test]{riposte_test()}}.
 }
 \description{
 The min-p combination (\code{riposte_test(statistic = "minp")}, the default) takes
@@ -46,4 +60,5 @@ and how each is computed.
 riposte_minp_control()
 riposte_minp_control(pvalue = "randomization")
 riposte_minp_control(quadratic = FALSE)
+riposte_minp_control(block = list(cosine = riposte_cosine))
 }

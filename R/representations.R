@@ -130,6 +130,26 @@ riposte_tanh <- function(y) {
   tanh((y - stats::median(y)) / s)
 }
 
+#' Cosine of the within-block rank
+#'
+#' Each unit gets \eqn{\cos(\pi r / (n_b + 1))}, where \eqn{r} is the rank of
+#' its outcome among the \eqn{n_b} outcomes of its block (ties at their average
+#' rank). The score runs from near 1 at the lowest outcome to near -1 at the
+#' highest. It is the score of the paper's cosine statistic (Bowers and Burton,
+#' Section 4.7), which riposte computes as a block statistic through
+#' `riposte_minp_control(block = list(cosine = riposte_cosine))`. Within a block
+#' of fifty units it correlates with the rank at -0.99, so as one of the
+#' representations added over blocks it nearly repeats the rank.
+#'
+#' @inheritParams riposte_mean_dist
+#' @return numeric vector the same length as `y`.
+#' @examples
+#' riposte_cosine(c(3.2, -1, 0.5, 7))
+#' @export
+riposte_cosine <- function(y) {
+  cos(pi * rank(y, ties.method = "average") / (length(y) + 1))
+}
+
 #' Huber's psi of a block's outcomes, standardised by the block's MAD
 #'
 #' A bounded representation: each outcome's departure from the block median,
