@@ -104,9 +104,10 @@ test_that("asymptotic mode ignores the unused resampling count and seed", {
 test_that("unsupported approximations give an explicit error", {
   d <- asymptotic_example()
   ## A shrunk quadratic does not generally have the ordinary chi-square
-  ## reference, and riposte has no large-sample min-p yet. The max has had a
-  ## multivariate normal reference since 0.0.0.9014 (test-max-asymptotic.R).
-  for (st in c("screen", "minp")) {
+  ## reference. The max has had a multivariate normal reference since
+  ## 0.0.0.9014 (test-max-asymptotic.R) and the min-p a normal-draw reference
+  ## since 0.0.0.9016 (test-minp-normal.R).
+  for (st in c("screen")) {
     expect_error(riposte_test(Y ~ trt | blk, d, statistic = st,
                               engine = "asymptotic"),
                  'asymptotic.*quadratic.*cauchy')

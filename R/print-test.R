@@ -39,6 +39,7 @@ print.riposte_test <- function(x, ...) {
     reference <- switch(x$combination,
       quadratic = sprintf("chi-square, df = %d", x$df),
       max = "multivariate normal",
+      minp = sprintf("%d draws from the joint normal approximation", x$nresample),
       if (!is.null(x$cauchy_cap))
         sprintf("standard Cauchy, p-values above %g entered as %g", x$cauchy_cap, x$cauchy_cap)
       else "standard Cauchy")

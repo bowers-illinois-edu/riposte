@@ -63,14 +63,16 @@ p-value and the quadratic's p-value, all with equal weight. With a
 one-sided \code{alternative}, only \code{"minp"} (the default then, without the
 quadratic combination), \code{"max"}, and \code{"cauchy"} are available. Under
 \code{engine = "saddlepoint"} the default is \code{"screen"}, because that engine has
-no min-p; under \code{engine = "asymptotic"} a statistic must be named.}
+no min-p.}
 
 \item{representations}{a named list of representation functions;
 \code{\link[=riposte_reps_default]{riposte_reps_default()}} by default. Supply your own to combine a different
 set.}
 
 \item{nresample}{number of re-randomizations for the Monte-Carlo combinations.
-Ignored for \code{engine = "asymptotic"}. riposte draws them a batch at a
+With \code{engine = "asymptotic"} it is the number of draws from the joint
+normal approximation for the min-p, and other statistics ignore it.
+riposte draws re-randomizations a batch at a
 time and keeps only each one's statistics, so memory does not grow with
 \code{nresample}. A batch holds at most \code{getOption("riposte.batch_entries")}
 entries of the units-by-assignments matrix (1e7 by default, about 80 MB);
@@ -102,7 +104,7 @@ shortcut). Used only when \code{adjust} is a bare formula.}
 cluster when \code{clusters} is given; the cluster mean by default.}
 
 \item{seed}{optional integer seed (L'Ecuyer-CMRG) for reproducibility.
-Ignored for \code{engine = "asymptotic"}, which uses no random draws.}
+With \code{engine = "asymptotic"} only the min-p uses random draws.}
 
 \item{engine}{\code{"permute"} (default) refers every combination to brute-force
 re-randomization (exact). \code{"asymptotic"} uses a chi-square reference for
@@ -118,9 +120,13 @@ These are approximations, available without \code{adjust}, and do not require
 standardized statistic (the largest absolute one for a two-sided test) to
 the joint normal distribution of the standardized statistics, with their
 null correlation matrix, as Rosenbaum (2012a) does; this needs the
-\code{mvtnorm} package. Set \code{statistic} explicitly to \code{"quadratic"},
-\code{"cauchy"}, \code{"hybrid"}, or \code{"max"}; the min-p and screen approximations
-are not implemented.
+\code{mvtnorm} package. For \code{statistic = "minp"}, the default, it computes
+every p-value of the min-p from the normal and chi-square formulas and
+refers the smallest to \code{nresample} draws of the standardized statistics
+(and of the per-block sums of any block statistic) from their joint normal
+approximation, instead of to redrawn assignments; under the normal model
+each formula p-value is exactly uniform, so \code{minp}'s \code{pvalue} setting does
+not apply. The screen has no large-sample version.
 \code{"saddlepoint"} computes the combination with no
 re-randomization, via \code{fastperm}: the unadjusted Cauchy (each representation's
 marginal saddlepoint p-value combined by the Liu-Xie analytic tail), the
@@ -193,8 +199,9 @@ observed assignment included. That observed-inclusion convention makes the
 test's level exactly valid in finite samples for any \code{nresample} (the p-value
 estimates, rather than equals, the full-enumeration value, so it varies with
 the seed). The closed-form moments and the screen's condition number are
-exact, not Monte-Carlo. With \code{engine = "asymptotic"}, \code{nresample} is zero
-and the p-value uses the stated approximation, not a permutation count.
+exact, not Monte-Carlo. With \code{engine = "asymptotic"}, the p-value uses
+the stated approximation, not a permutation count, and \code{nresample} is zero
+except for the min-p.
 Cauchy results from this engine also include \code{component_p}, the individual
 chi-square p-values, and hybrid results add the quadratic's. With
 \code{engine = "permute"}, hybrid results include \code{component_p}, the seven

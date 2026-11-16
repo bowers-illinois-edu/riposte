@@ -17,7 +17,8 @@ riposte_log_chisq1_lower <- function(x, tol = 1e-30) {
 }
 
 riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided",
-                                    truncation = 0.9, cap = NULL) {
+                                    truncation = 0.9, cap = NULL, minp_quadratic = TRUE,
+                                    block_scores = NULL, nresample = 1999L) {
   moments <- riposte_sw_moments(sm$scores, des$z, des$block)
   riposte_assert_testable(moments$Sigma)
 
@@ -75,7 +76,10 @@ riposte_test_asymptotic <- function(des, sm, statistic, alternative = "two.sided
     else riposte_cauchy_log_tails(log_p, log_1mp)
   }
 
-  if (statistic == "quadratic") {
+  if (statistic == "minp") {
+    result <- riposte_minp_normal(scores, des$z, des$block, alternative, minp_quadratic,
+                                  block_scores, nresample)
+  } else if (statistic == "quadratic") {
     qd <- quadratic()
     result <- list(statistic = qd$statistic, p.value = exp(qd$log_p), df = qd$df)
   } else if (statistic == "max") {
@@ -186,4 +190,105 @@ riposte_max_normal_p <- function(largest, R, alternative = "two.sided") {
                              algorithm = mvtnorm::GenzBretz(maxpts = 1e5, abseps = 1e-6),
                              seed = 1)
   max(0, min(1, 1 - inside[[1]]))
+}
+
+## ---- the min-p under the normal approximation ----------------------------------
+
+## The null mean and covariance of the treated sums of `scores` and, for each
+## column of `block_scores`, of each block's treated sum of that score's
+## departures from its block mean. Within block b, with m_b of n_b units
+## treated, the treated sums of any two centered scores have covariance
+## m_b (n_b - m_b) / (n_b - 1) x (1 / n_b) x the sum over the block of their
+## product, and sums from different blocks are independent (Strasser and Weber).
+## A block enters a block score's sums only if it has treated and control units
+## and the score varies there. Returns Sigma, mu, and for each block score the
+## positions of its per-block sums.
+riposte_joint_null_cov <- function(scores, z, block, block_scores = NULL) {
+  scores <- as.matrix(scores)
+  z <- as.numeric(z)
+  mom <- riposte_sw_moments(scores, z, block)
+  K <- ncol(scores)
+  if (is.null(block_scores)) return(list(Sigma = mom$Sigma, mu = mom$mu, cols = list()))
+  block_scores <- as.matrix(block_scores)
+  idx <- split(seq_along(z), block)
+  ## per block score, the usable blocks and each one's centered score and weight
+  pieces <- list()
+  cols <- list()
+  for (j in seq_len(ncol(block_scores))) {
+    here <- integer(0)
+    for (b in seq_along(idx)) {
+      ix <- idx[[b]]
+      n_b <- length(ix); m_b <- sum(z[ix])
+      if (n_b < 2L || m_b == 0 || m_b == n_b) next
+      a <- block_scores[ix, j] - mean(block_scores[ix, j])
+      if (sum(a^2) <= 0) next
+      pieces[[length(pieces) + 1L]] <- list(ix = ix, a = a,
+                                           w = m_b * (n_b - m_b) / (n_b - 1) / n_b)
+      here <- c(here, K + length(pieces))
+    }
+    cols[[colnames(block_scores)[j]]] <- here
+  }
+  d <- K + length(pieces)
+  Sigma <- matrix(0, d, d)
+  Sigma[seq_len(K), seq_len(K)] <- mom$Sigma
+  for (p in seq_along(pieces)) {
+    pc <- pieces[[p]]
+    sc <- scores[pc$ix, , drop = FALSE]
+    sc <- sweep(sc, 2, colMeans(sc))
+    Sigma[seq_len(K), K + p] <- Sigma[K + p, seq_len(K)] <- pc$w * colSums(sc * pc$a)
+    for (q in seq_len(p)) {
+      if (!identical(pieces[[q]]$ix, pc$ix)) next
+      Sigma[K + p, K + q] <- Sigma[K + q, K + p] <- pc$w * sum(pc$a * pieces[[q]]$a)
+    }
+  }
+  list(Sigma = Sigma, mu = c(mom$mu, numeric(length(pieces))), cols = cols,
+       pieces = pieces)
+}
+
+## The min-p with every p-value from the normal or chi-square formula, referred
+## to `ndraws` draws of the standardized statistics from their joint normal
+## approximation instead of to redrawn assignments (Jake's task of 2026-11-06).
+## Under the normal model each formula p-value is exactly uniform. The observed
+## smallest p-value counts as one more draw, as the permutation p-values do.
+riposte_minp_normal <- function(scores, z, block, alternative = "two.sided",
+                                quadratic = TRUE, block_scores = NULL, ndraws = 1999L) {
+  if (quadratic && alternative != "two.sided") riposte_minp_one_sided_error(alternative)
+  if (!is.null(block_scores) && alternative != "two.sided")
+    riposte_minp_block_one_sided_error(alternative)
+  K <- ncol(scores)
+  jc <- riposte_joint_null_cov(scores, z, block, block_scores)
+  ## the observed sums: the treated sums of the scores, then each block's
+  ## treated sum of a block score's departures
+  obs <- c(drop(crossprod(as.numeric(z), scores)),
+           vapply(jc$pieces, function(pc) sum(z[pc$ix] * pc$a), numeric(1))) - jc$mu
+  sdv <- sqrt(diag(jc$Sigma))
+  C <- jc$Sigma / outer(sdv, sdv)
+  e <- eigen(C, symmetric = TRUE)
+  root <- e$vectors %*% diag(sqrt(pmax(e$values, 0)), nrow = length(e$values))
+  X <- rbind(obs / sdv,
+             matrix(stats::rnorm(ndraws * ncol(C)), ndraws, ncol(C)) %*% t(root))
+  S <- X[, seq_len(K), drop = FALSE]
+  logP <- if (alternative == "two.sided")
+    stats::pchisq(S^2, df = 1, lower.tail = FALSE, log.p = TRUE)
+  else stats::pnorm(if (alternative == "greater") S else -S, lower.tail = FALSE, log.p = TRUE)
+  logP <- matrix(logP, nrow = nrow(X), dimnames = list(NULL, colnames(scores)))
+  df <- NA_integer_
+  if (quadratic) {
+    inv <- riposte_std_pinv(jc$Sigma[seq_len(K), seq_len(K), drop = FALSE])
+    q <- rowSums((S %*% inv$R_pinv) * S)
+    df <- inv$rank
+    logP <- cbind(logP, quadratic = stats::pchisq(q, df = df, lower.tail = FALSE, log.p = TRUE))
+  }
+  for (nm in names(jc$cols)) {
+    cj <- jc$cols[[nm]]
+    if (!length(cj)) next
+    stat <- rowSums(X[, cj, drop = FALSE]^2)
+    logP <- cbind(logP, stats::pchisq(stat, df = length(cj), lower.tail = FALSE, log.p = TRUE))
+    colnames(logP)[ncol(logP)] <- paste0("block_", nm)
+  }
+  smallest <- apply(logP, 1, min)
+  list(statistic = exp(smallest[[1]]), p.value = riposte_perm_pvalue(-smallest),
+       which = colnames(logP)[which.min(logP[1, ])],
+       component_p = stats::setNames(exp(logP[1, ]), colnames(logP)),
+       pvalue = "asymptotic", quadratic = quadratic, df = df)
 }

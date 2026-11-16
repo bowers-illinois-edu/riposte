@@ -42,7 +42,7 @@
 #'   one-sided `alternative`, only `"minp"` (the default then, without the
 #'   quadratic combination), `"max"`, and `"cauchy"` are available. Under
 #'   `engine = "saddlepoint"` the default is `"screen"`, because that engine has
-#'   no min-p; under `engine = "asymptotic"` a statistic must be named.
+#'   no min-p.
 #' @param alternative `"two.sided"` (default) counts evidence in either
 #'   direction. `"greater"` counts only treated-score sums above their
 #'   re-randomization mean, and `"less"` only sums below it. For scores that rise
@@ -60,7 +60,9 @@
 #'   [riposte_reps_default()] by default. Supply your own to combine a different
 #'   set.
 #' @param nresample number of re-randomizations for the Monte-Carlo combinations.
-#'   Ignored for `engine = "asymptotic"`. riposte draws them a batch at a
+#'   With `engine = "asymptotic"` it is the number of draws from the joint
+#'   normal approximation for the min-p, and other statistics ignore it.
+#'   riposte draws re-randomizations a batch at a
 #'   time and keeps only each one's statistics, so memory does not grow with
 #'   `nresample`. A batch holds at most `getOption("riposte.batch_entries")`
 #'   entries of the units-by-assignments matrix (1e7 by default, about 80 MB);
@@ -85,7 +87,7 @@
 #' @param cluster_agg how to aggregate the outcome (and covariates) within a
 #'   cluster when `clusters` is given; the cluster mean by default.
 #' @param seed optional integer seed (L'Ecuyer-CMRG) for reproducibility.
-#'   Ignored for `engine = "asymptotic"`, which uses no random draws.
+#'   With `engine = "asymptotic"` only the min-p uses random draws.
 #' @param engine `"permute"` (default) refers every combination to brute-force
 #'   re-randomization (exact). `"asymptotic"` uses a chi-square reference for
 #'   `statistic = "quadratic"`, with degrees of freedom equal to the numerical
@@ -100,9 +102,13 @@
 #'   standardized statistic (the largest absolute one for a two-sided test) to
 #'   the joint normal distribution of the standardized statistics, with their
 #'   null correlation matrix, as Rosenbaum (2012a) does; this needs the
-#'   `mvtnorm` package. Set `statistic` explicitly to `"quadratic"`,
-#'   `"cauchy"`, `"hybrid"`, or `"max"`; the min-p and screen approximations
-#'   are not implemented.
+#'   `mvtnorm` package. For `statistic = "minp"`, the default, it computes
+#'   every p-value of the min-p from the normal and chi-square formulas and
+#'   refers the smallest to `nresample` draws of the standardized statistics
+#'   (and of the per-block sums of any block statistic) from their joint normal
+#'   approximation, instead of to redrawn assignments; under the normal model
+#'   each formula p-value is exactly uniform, so `minp`'s `pvalue` setting does
+#'   not apply. The screen has no large-sample version.
 #'   `"saddlepoint"` computes the combination with no
 #'   re-randomization, via `fastperm`: the unadjusted Cauchy (each representation's
 #'   marginal saddlepoint p-value combined by the Liu-Xie analytic tail), the
@@ -154,8 +160,9 @@
 #'   test's level exactly valid in finite samples for any `nresample` (the p-value
 #'   estimates, rather than equals, the full-enumeration value, so it varies with
 #'   the seed). The closed-form moments and the screen's condition number are
-#'   exact, not Monte-Carlo. With `engine = "asymptotic"`, `nresample` is zero
-#'   and the p-value uses the stated approximation, not a permutation count.
+#'   exact, not Monte-Carlo. With `engine = "asymptotic"`, the p-value uses
+#'   the stated approximation, not a permutation count, and `nresample` is zero
+#'   except for the min-p.
 #'   Cauchy results from this engine also include `component_p`, the individual
 #'   chi-square p-values, and hybrid results add the quadratic's. With
 #'   `engine = "permute"`, hybrid results include `component_p`, the seven
@@ -327,13 +334,14 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
   ## min-p leaves the quadratic out. Away from the permutation engine only the
   ## Cauchy has a one-sided version.
   if (alternative != "two.sided") {
-    one_sided_here <- if (engine == "asymptotic") c("cauchy", "max") else "cauchy"
+    one_sided_here <- if (engine == "asymptotic") c("cauchy", "max", "minp") else "cauchy"
     if (engine != "permute" && !statistic %in% one_sided_here)
       stop("with engine = \"", engine, "\", a one-sided test needs statistic = ",
-           paste0("\"", one_sided_here, "\"", collapse = " or "), ". The min-p",
-           if (engine == "saddlepoint") " and the max need" else " needs",
-           " engine = \"permute\", and the quadratic, the screen, and the hybrid have ",
-           "no one-sided form.", call. = FALSE)
+           paste0("\"", one_sided_here, "\"", collapse = " or "), ".",
+           if (engine == "saddlepoint")
+             " The min-p and the max need engine = \"permute\" or \"asymptotic\".",
+           " The quadratic, the screen, and the hybrid have no one-sided form.",
+           call. = FALSE)
     if (statistic %in% c("quadratic", "screen", "hybrid"))
       stop("a one-sided alternative needs statistic = \"minp\", \"max\", or ",
            "\"cauchy\"; the quadratic, the screen, and the hybrid have no ",
@@ -359,15 +367,19 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
            "or give a named list of score functions.", call. = FALSE)
   }
   if (engine == "asymptotic") {
-    if (!statistic %in% c("quadratic", "cauchy", "hybrid", "max"))
-      stop("engine = \"asymptotic\" needs statistic = \"quadratic\", \"cauchy\", ",
-           "\"hybrid\", or \"max\". riposte has no large-sample version of the min-p ",
-           "yet, and the screen also needs engine = \"permute\", which runs the min-p ",
-           "by default.", call. = FALSE)
+    if (!statistic %in% c("minp", "quadratic", "cauchy", "hybrid", "max"))
+      stop("engine = \"asymptotic\" has no version of the screen. Use statistic = ",
+           "\"minp\" (the default), \"quadratic\", \"cauchy\", \"hybrid\", or \"max\", ",
+           "or engine = \"permute\".", call. = FALSE)
     if (!is.null(adjust))
       stop("engine = \"asymptotic\" does not support covariance adjustment; ",
            "use engine = \"permute\".", call. = FALSE)
-    nresample <- 0L
+    ## the large-sample min-p draws its reference from the normal approximation,
+    ## nresample draws; every other large-sample statistic draws nothing
+    if (statistic == "minp") {
+      nresample <- riposte_check_nresample(nresample)
+      if (!is.null(seed)) { RNGkind("L'Ecuyer-CMRG"); set.seed(seed) }
+    } else nresample <- 0L
   } else {
     nresample <- riposte_check_nresample(nresample)
     if (!is.null(seed)) { RNGkind("L'Ecuyer-CMRG"); set.seed(seed) }
@@ -430,7 +442,8 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
     cauchy_cap = if (engine == "asymptotic" && statistic %in% c("cauchy", "hybrid"))
       cauchy_cap,
     minp = if (identical(out$combination, "minp"))
-      list(pvalue = minp$pvalue, quadratic = minp_quadratic,
+      list(pvalue = if (engine == "asymptotic") "asymptotic" else minp$pvalue,
+           quadratic = minp_quadratic,
            block = riposte_minp_block_names(out$component_p)),
     alternative = alternative,
     engine = engine,
@@ -458,7 +471,11 @@ riposte_test_unadjusted <- function(des, representations, draws, statistic, scre
 
   if (engine == "asymptotic")
     return(riposte_test_asymptotic(des, sm, statistic, alternative, truncation,
-                                   cauchy_cap))
+                                   cauchy_cap, minp_quadratic,
+                                   if (statistic == "minp" && !is.null(minp_block))
+                                     riposte_minp_block_scores(des$y, des$z, des$block,
+                                                               representations, minp_block),
+                                   nresample))
 
   ## draws-free saddlepoint combinations. The Cauchy needs no joint covariance; the
   ## quadratic (and the screen's choice between it and the Cauchy) need the

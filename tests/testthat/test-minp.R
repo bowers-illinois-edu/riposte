@@ -274,10 +274,9 @@ test_that("min-p runs with covariance adjustment", {
   expect_true(res$p.value >= 0 && res$p.value <= 1)
 })
 
-test_that("the large-sample and saddlepoint engines refuse min-p", {
+test_that("the saddlepoint engine refuses min-p", {
+  ## the large-sample engine has had a min-p since 0.0.0.9016 (test-minp-normal.R)
   dat <- minp_design(4)
-  expect_error(riposte_test(y ~ z | b, dat, statistic = "minp", engine = "asymptotic"),
-               "minp|min-p")
   expect_error(riposte_test(y ~ z | b, dat, statistic = "minp", engine = "saddlepoint"),
                "minp|min-p")
 })

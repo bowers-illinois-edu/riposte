@@ -1,3 +1,17 @@
+# riposte 0.0.0.9016
+
+* `riposte_test(engine = "asymptotic")` now runs the min-p, so the default
+  statistic works with the large-sample engine. Every p-value of the min-p comes
+  from the normal or chi-square formula, and the observed smallest is referred to
+  `nresample` draws of the standardized statistics from their joint normal
+  approximation instead of to redrawn assignments. The quadratic combination is
+  a function of the same standardized statistics, and a block statistic is a sum
+  of squared per-block standardized sums, which are jointly normal with them, so
+  every p-value of the min-p is computed from each draw. The work per draw does
+  not grow with the number of units. With the six single p-values only it is
+  the large-sample max-T, up to the Monte Carlo error of the draws. `seed` makes
+  it reproducible.
+
 # riposte 0.0.0.9015
 
 * riposte now draws re-randomizations a batch at a time and keeps only each

@@ -121,12 +121,14 @@ and a chi-square distribution on one degree of freedom. We then average the
 Cauchy transforms of those p-values and calculate the standard Cauchy upper
 tail. The two combined p-values need not equal their permutation counterparts.
 
-The asymptotic engine uses no random draws, so `seed` and `nresample` have no
-effect. Its printed result identifies the approximation. It supports the
-unadjusted quadratic, Cauchy, hybrid, and max tests. The min-p (the default),
-the screen, and covariance adjustment need the permutation engine. The
-approximations do not give
-the permutation test's finite-sample level guarantee. In particular, individual
+The asymptotic engine's printed result identifies the approximation. It
+supports the unadjusted min-p, quadratic, Cauchy, hybrid, and max tests. Only
+its min-p uses random draws: it refers the smallest p-value to `nresample` draws
+from the joint normal approximation of the standardized statistics, and `seed`
+makes those draws reproducible. The quadratic, Cauchy, hybrid, and max ignore
+`seed` and `nresample`. The screen and covariance adjustment need the
+permutation engine. The approximations do not give the permutation test's
+finite-sample level guarantee. In particular, individual
 scores that dominate the variance can make the normal approximation behind
 the chi-square calculation inaccurate. Dependence among the individual
 p-values also means that the Cauchy reference is an approximation.

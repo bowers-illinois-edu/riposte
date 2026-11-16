@@ -152,19 +152,18 @@ test_that("the saddlepoint engine keeps the screen as its default", {
   expect_equal(res$requested, "screen")
 })
 
-test_that("the large-sample engine asks for a named statistic and says why the min-p is not offered", {
+test_that("the large-sample engine runs the min-p by default and refuses only the screen", {
+  ## since 0.0.0.9016 the large-sample min-p draws its reference from the joint
+  ## normal approximation (test-minp-normal.R), so the default needs no name
   dat <- minp_interface_design(9)
-  for (call_minp in c(FALSE, TRUE)) {
-    msg <- tryCatch(
-      if (call_minp) riposte_test(y ~ z | b, dat, statistic = "minp", engine = "asymptotic")
-      else riposte_test(y ~ z | b, dat, engine = "asymptotic"),
-      error = conditionMessage)
-    expect_match(msg, "\"quadratic\"", fixed = TRUE)
-    expect_match(msg, "min-p", fixed = TRUE)
-    ## the old reason, that the min-p is the max under the normal
-    ## approximation, stopped being true when the quadratic combination joined
-    expect_false(grepl("is the max", msg, fixed = TRUE))
-  }
+  res <- riposte_test(y ~ z | b, dat, engine = "asymptotic", nresample = 99, seed = 9)
+  expect_equal(res$requested, "minp")
+  expect_equal(res$minp$pvalue, "asymptotic")
+  msg <- tryCatch(riposte_test(y ~ z | b, dat, statistic = "screen", engine = "asymptotic"),
+                  error = conditionMessage)
+  expect_match(msg, "screen", fixed = TRUE)
+  expect_match(msg, "\"quadratic\"", fixed = TRUE)
+  expect_false(grepl("is the max", msg, fixed = TRUE))
 })
 
 ## ---- the printed result ----------------------------------------------------------
