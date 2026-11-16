@@ -70,7 +70,11 @@ no min-p; under \code{engine = "asymptotic"} a statistic must be named.}
 set.}
 
 \item{nresample}{number of re-randomizations for the Monte-Carlo combinations.
-Ignored for \code{engine = "asymptotic"}.}
+Ignored for \code{engine = "asymptotic"}. riposte draws them a batch at a
+time and keeps only each one's statistics, so memory does not grow with
+\code{nresample}. A batch holds at most \code{getOption("riposte.batch_entries")}
+entries of the units-by-assignments matrix (1e7 by default, about 80 MB);
+the batch size changes memory use and nothing else.}
 
 \item{screen}{a \code{\link[=riposte_screen_control]{riposte_screen_control()}} list, used when
 \code{statistic = "screen"}.}

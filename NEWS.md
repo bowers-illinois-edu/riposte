@@ -1,3 +1,13 @@
+# riposte 0.0.0.9015
+
+* riposte now draws re-randomizations a batch at a time and keeps only each
+  assignment's statistics, so memory no longer grows with `nresample`. Before,
+  it held every redrawn assignment at once: about 32 GB at 100,000 units and
+  40,000 re-randomizations. The option `riposte.batch_entries` sets the largest
+  batch in matrix entries (default 1e7, about 80 MB). The batches are the same
+  assignments in the same order as before, so every p-value for a given seed is
+  unchanged.
+
 # riposte 0.0.0.9014
 
 * `riposte_test(cauchy_cap = 0.999)` applies the paper's rule to the

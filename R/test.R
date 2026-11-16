@@ -60,7 +60,11 @@
 #'   [riposte_reps_default()] by default. Supply your own to combine a different
 #'   set.
 #' @param nresample number of re-randomizations for the Monte-Carlo combinations.
-#'   Ignored for `engine = "asymptotic"`.
+#'   Ignored for `engine = "asymptotic"`. riposte draws them a batch at a
+#'   time and keeps only each one's statistics, so memory does not grow with
+#'   `nresample`. A batch holds at most `getOption("riposte.batch_entries")`
+#'   entries of the units-by-assignments matrix (1e7 by default, about 80 MB);
+#'   the batch size changes memory use and nothing else.
 #' @param screen a [riposte_screen_control()] list, used when
 #'   `statistic = "screen"`.
 #' @param minp a [riposte_minp_control()] list, used when `statistic = "minp"`:
@@ -408,17 +412,18 @@ riposte_test <- function(formula, data, blocks = NULL, clusters = NULL,
     X <- col$X; n_clusters <- col$n_clusters
   }
 
-  ## Only the permutation engine needs randomized assignments.
-  draws <- if (engine == "permute")
-    riposte_block_draws(des$z, des$block, nresample) else NULL
+  ## Only the permutation engine needs randomized assignments. They are drawn a
+  ## batch at a time where each statistic is computed (riposte_over_draws()), so
+  ## no matrix of every assignment is held.
+  draws <- NULL
 
   out <- if (is.null(adjust))
     riposte_test_unadjusted(des, representations, draws, statistic, screen, engine,
                             alternative, cauchy_truncation, minp$pvalue, minp_quadratic,
-                            minp$block, cauchy_cap)
+                            minp$block, cauchy_cap, nresample)
   else
     riposte_test_adjusted(des, X, representations, draws, statistic, screen, spec,
-                          alternative, minp$pvalue, minp_quadratic)
+                          alternative, minp$pvalue, minp_quadratic, nresample)
 
   structure(c(out, list(
     requested = statistic,
@@ -445,7 +450,7 @@ riposte_test_unadjusted <- function(des, representations, draws, statistic, scre
                                     engine = "permute", alternative = "two.sided",
                                     truncation = 0.9, minp_pvalue = "midp",
                                     minp_quadratic = FALSE, minp_block = NULL,
-                                    cauchy_cap = NULL) {
+                                    cauchy_cap = NULL, nresample = 1999L) {
   sm <- riposte_score_matrix(des$y, des$block, representations)
   if (ncol(sm$scores) == 0L)
     stop("every representation is constant within blocks; nothing to test.",
@@ -497,19 +502,23 @@ riposte_test_unadjusted <- function(des, representations, draws, statistic, scre
     quadratic = {
       mom <- if (statistic == "screen" && scr$method == "shrink")
         list(mu = moments$mu, Sigma = scr$Sigma) else moments
-      riposte_quadratic(sm$scores, des$z, des$block, moments = mom, draws = draws)
+      riposte_quadratic(sm$scores, des$z, des$block, moments = mom, draws = draws,
+                        nresample = nresample)
     },
-    cauchy = riposte_cauchy(sm$scores, des$z, des$block, draws = draws,
+    cauchy = riposte_cauchy(sm$scores, des$z, des$block, draws = draws, nresample = nresample,
                             alternative = alternative),
     max    = riposte_max(sm$scores, des$z, des$block, moments = moments, draws = draws,
+                         nresample = nresample,
                          alternative = alternative),
     minp   = riposte_minp(sm$scores, des$z, des$block, moments = moments, draws = draws,
+                          nresample = nresample,
                           alternative = alternative, pvalue = minp_pvalue,
                           quadratic = minp_quadratic,
                           block_scores = if (!is.null(minp_block))
                             riposte_minp_block_scores(des$y, des$z, des$block,
                                                       representations, minp_block)),
-    hybrid = riposte_hybrid(sm$scores, des$z, des$block, moments = moments, draws = draws)
+    hybrid = riposte_hybrid(sm$scores, des$z, des$block, moments = moments, draws = draws,
+                            nresample = nresample)
   )
   out <- list(statistic = res$statistic, p.value = res$p.value, combination = chosen,
               condition = scr$condition, screen = if (statistic == "screen") scr else NULL,
@@ -524,9 +533,11 @@ riposte_test_unadjusted <- function(des, representations, draws, statistic, scre
 ## (possibly cluster-collapsed) covariate matrix built by the caller.
 riposte_test_adjusted <- function(des, X, representations, draws, statistic,
                                   screen, spec, alternative = "two.sided",
-                                  minp_pvalue = "midp", minp_quadratic = FALSE) {
+                                  minp_pvalue = "midp", minp_quadratic = FALSE,
+                                  nresample = 1999L) {
   rp <- riposte_residual_perm_stats(des$y, X, des$block, draws, spec$learner,
-                                    representations, spec$refit)
+                                    representations, spec$refit, z = des$z,
+                                    nresample = nresample)
   comb <- riposte_adjusted_combination(rp$stats, statistic, screen, alternative,
                                        minp_pvalue, minp_quadratic)
   out <- list(statistic = comb$result$statistic, p.value = comb$result$p.value,

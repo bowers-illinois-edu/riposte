@@ -81,16 +81,21 @@ riposte_covariate_matrix <- function(covariates, data) {
 #' @noRd
 riposte_residual_perm_stats <- function(y, X, block, draws, learner,
                                         representations = riposte_reps_default(),
-                                        refit = TRUE) {
+                                        refit = TRUE, z = NULL, nresample = NULL) {
   y <- as.numeric(y)
   X <- as.matrix(X)
-  nd <- ncol(draws)
+  ## with `draws` NULL the assignments come a batch at a time from the observed
+  ## `z` (riposte_over_draws()) and are not kept
+  z_obs <- if (is.null(draws)) as.numeric(z) else draws[, 1]
 
   if (!refit) {
-    ## fit once on the observed controls (column 1), permute the fixed residuals
-    e <- y - learner(X, y, draws[, 1] == 0)
+    ## fit once on the observed controls, permute the fixed residuals
+    e <- y - learner(X, y, z_obs == 0)
     sm <- riposte_score_matrix(e, block, representations)
-    return(list(stats = crossprod(draws, sm$scores), kept = sm$kept))
+    stats <- riposte_over_draws(z_obs, block, nresample,
+                                function(G) crossprod(G, sm$scores), draws = draws)
+    colnames(stats) <- colnames(sm$scores)
+    return(list(stats = stats, kept = sm$kept))
   }
 
   ## Compute every representation's linear statistic at every assignment (column 1
@@ -100,13 +105,17 @@ riposte_residual_perm_stats <- function(y, X, block, draws, learner,
   ## combined statistic -- would depend on which assignment is "observed" and the
   ## exactness argument (exchangeability of the B+1 statistics) would break.
   nm <- names(representations)
-  stats <- matrix(0, nd, length(representations), dimnames = list(NULL, nm))
-  for (b in seq_len(nd)) {
-    zb <- draws[, b]
-    e <- y - learner(X, y, zb == 0)
-    Sb <- riposte_centred_scores(e, block, representations)
-    stats[b, ] <- colSums(Sb[zb == 1, , drop = FALSE])
-  }
+  stats <- riposte_over_draws(z_obs, block, nresample, function(G) {
+    rows <- matrix(0, ncol(G), length(representations))
+    for (b in seq_len(ncol(G))) {
+      zb <- G[, b]
+      e <- y - learner(X, y, zb == 0)
+      Sb <- riposte_centred_scores(e, block, representations)
+      rows[b, ] <- colSums(Sb[zb == 1, , drop = FALSE])
+    }
+    rows
+  }, draws = draws)
+  dimnames(stats) <- list(NULL, nm)
 
   ## symmetric selection: drop a representation only if its linear statistic is
   ## constant across the pooled set of assignments (zero pooled variance) -- it

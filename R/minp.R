@@ -288,13 +288,27 @@ riposte_minp <- function(scores, z, block, moments = NULL, draws = NULL,
     return(list(statistic = NA_real_, p.value = NA_real_, which = NA_character_,
                 component_p = numeric(0)))
   moments <- moments %||% riposte_sw_moments(scores, z, block)
-  perm <- riposte_perm_stats(scores, z, block, nresample, draws)
-  block_stats <- NULL
-  if (!is.null(block_scores)) {
-    block_scores <- as.matrix(block_scores)
-    block_stats <- lapply(stats::setNames(seq_len(ncol(block_scores)), colnames(block_scores)),
-                          function(j) riposte_block_squared(block_scores[, j], block, perm$draws))
+  if (is.null(block_scores)) {
+    Tmat <- riposte_perm_stats(scores, z, block, nresample, draws)$stats
+    return(riposte_minp_from_T(Tmat, alternative, pvalue, quadratic, moments$mu,
+                               moments$Sigma))
   }
-  riposte_minp_from_T(perm$stats, alternative, pvalue, quadratic, moments$mu,
+  ## the treated sums and the block statistics from the same assignments, in one
+  ## pass over the batches
+  block_scores <- as.matrix(block_scores)
+  k <- ncol(scores)
+  rows <- riposte_over_draws(z, block, nresample, function(G)
+    cbind(crossprod(G, scores),
+          vapply(seq_len(ncol(block_scores)), function(j)
+            riposte_block_squared(block_scores[, j], block, G)$stat, numeric(ncol(G)))),
+    draws = draws)
+  Tmat <- rows[, seq_len(k), drop = FALSE]
+  colnames(Tmat) <- colnames(scores)
+  zmat <- matrix(as.numeric(z), ncol = 1L)
+  block_stats <- lapply(stats::setNames(seq_len(ncol(block_scores)), colnames(block_scores)),
+                        function(j) list(stat = rows[, k + j],
+                                         df = riposte_block_squared(block_scores[, j], block,
+                                                                    zmat)$df))
+  riposte_minp_from_T(Tmat, alternative, pvalue, quadratic, moments$mu,
                       moments$Sigma, block_stats)
 }

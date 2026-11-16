@@ -32,15 +32,23 @@
 #' @export
 riposte_block_draws <- function(z, block, nresample = 1999L) {
   z <- as.numeric(z)
+  draw <- riposte_draw_generator(z, block)
+  cbind(z, draw(nresample), deparse.level = 0)
+}
+
+## A function of b that returns b new re-randomizations as an n x b matrix. Each
+## draw places every block's treated count at random positions within the block,
+## exactly as the study assigns treatment. Draws come one at a time from the
+## random number stream, so b draws in one call and the same b draws in several
+## calls are the same assignments in the same order.
+riposte_draw_generator <- function(z, block) {
+  z <- as.numeric(z)
   n <- length(z)
   if (length(block) != n)
     stop("`z` and `block` must have the same length.", call. = FALSE)
   ## index sets and treated counts per block, from the observed assignment
   idx_list <- split(seq_len(n), block)
   nt <- vapply(idx_list, function(ix) sum(z[ix]), numeric(1))
-
-  ## one re-randomization: within each block, place the block's treated count at
-  ## random positions, exactly as the study assigns treatment
   one_draw <- function() {
     g <- numeric(n)
     for (bi in seq_along(idx_list)) {
@@ -50,8 +58,37 @@ riposte_block_draws <- function(z, block, nresample = 1999L) {
     }
     g
   }
+  function(b) {
+    if (b <= 0L) return(matrix(numeric(0), nrow = n, ncol = 0))
+    matrix(replicate(b, one_draw()), nrow = n, ncol = b)
+  }
+}
 
-  draws <- if (nresample > 0L) replicate(nresample, one_draw()) else
-    matrix(numeric(0), nrow = n, ncol = 0)
-  cbind(z, draws, deparse.level = 0)
+## Statistics at the observed assignment and at nresample re-randomizations,
+## computed a batch at a time (Jake's task of 2026-11-06). fun(G) takes an n x b
+## matrix of assignments, the observed one first in the first batch, and returns
+## a matrix with one row per assignment. A batch holds at most `entries` matrix
+## entries (option riposte.batch_entries, default 1e7, about 80 MB of doubles),
+## so memory grows with the batch rather than with nresample: 100,000 units with
+## 40,000 re-randomizations would otherwise need about 32 GB. With `draws`
+## given, fun is applied to that matrix as a whole, which the tests that list
+## every assignment use.
+riposte_over_draws <- function(z, block, nresample, fun, draws = NULL,
+                               entries = getOption("riposte.batch_entries", 1e7)) {
+  if (!is.null(draws)) return(as.matrix(fun(draws)))
+  z <- as.numeric(z)
+  per <- max(1L, floor(entries / length(z)))
+  draw <- riposte_draw_generator(z, block)
+  total <- nresample + 1L
+  out <- vector("list", ceiling(total / per))
+  done <- 0L
+  i <- 0L
+  while (done < total) {
+    b <- min(per, total - done)
+    G <- if (done == 0L) cbind(z, draw(b - 1L), deparse.level = 0) else draw(b)
+    i <- i + 1L
+    out[[i]] <- as.matrix(fun(G))
+    done <- done + b
+  }
+  do.call(rbind, out)
 }

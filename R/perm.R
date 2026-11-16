@@ -38,10 +38,12 @@
 #' @noRd
 riposte_perm_stats <- function(scores, z, block, nresample = 1999L, draws = NULL) {
   scores <- as.matrix(scores)
-  if (is.null(draws)) draws <- riposte_block_draws(z, block, nresample)
   ## T = G' S: each column of G is an assignment, each column of S a
-  ## representation; crossprod gives assignments x representations
-  stats <- crossprod(draws, scores)
+  ## representation; crossprod gives assignments x representations. Without
+  ## `draws` the assignments come a batch at a time and are not kept
+  ## (riposte_over_draws()).
+  stats <- riposte_over_draws(z, block, nresample, function(G) crossprod(G, scores),
+                              draws = draws)
   colnames(stats) <- colnames(scores)
   list(stats = stats, draws = draws)
 }
